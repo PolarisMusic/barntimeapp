@@ -40,7 +40,12 @@ export default async function DocumentsPage({
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/portal/events/${id}`} className="text-sm text-gray-500 hover:text-gray-700">&larr; {event.name}</Link>
+        <Link
+          href={`/portal/events/${id}`}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          &larr; {event.name}
+        </Link>
         <h1 className="mt-1 text-2xl font-bold">Documents</h1>
       </div>
 
@@ -48,16 +53,25 @@ export default async function DocumentsPage({
         {documents && documents.length > 0 ? (
           <div className="divide-y divide-gray-200">
             {documents.map((d) => (
-              <div key={d.id} className="flex items-center justify-between p-4">
+              <div
+                key={d.id}
+                className="flex items-center justify-between p-4"
+              >
                 <div>
                   <p className="text-sm font-medium">{d.name}</p>
                   <p className="text-xs text-gray-500">
-                    {typeLabels[d.document_type] || d.document_type} | {new Date(d.created_at).toLocaleDateString()}
+                    {typeLabels[d.document_type] || d.document_type} |{" "}
+                    {new Date(d.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
-                  {d.file_type || "file"}
-                </span>
+                <a
+                  href={`/api/documents/${d.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md border border-blue-200 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+                >
+                  Download
+                </a>
               </div>
             ))}
           </div>

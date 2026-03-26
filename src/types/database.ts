@@ -145,18 +145,18 @@ export type Database = {
           event_id: string;
           account_id: string;
           role_label: string | null;
-          visibility: string;
+          visibility: "limited" | "standard";
           created_at: string;
         };
         Insert: {
           event_id: string;
           account_id: string;
           role_label?: string | null;
-          visibility?: string;
+          visibility?: "limited" | "standard";
         };
         Update: {
           role_label?: string | null;
-          visibility?: string;
+          visibility?: "limited" | "standard";
         };
       };
       event_locations: {
@@ -253,7 +253,7 @@ export type Database = {
           file_path: string;
           file_type: string | null;
           document_type: "site_map" | "run_sheet" | "vendor_packet" | "insurance_compliance" | "stage_plot" | "parking_load_in" | "misc";
-          visibility: "owner_only" | "all_participants" | "specific_accounts";
+          visibility: "owner_only" | "all_participants";
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -265,13 +265,13 @@ export type Database = {
           file_path: string;
           file_type?: string | null;
           document_type?: "site_map" | "run_sheet" | "vendor_packet" | "insurance_compliance" | "stage_plot" | "parking_load_in" | "misc";
-          visibility?: "owner_only" | "all_participants" | "specific_accounts";
+          visibility?: "owner_only" | "all_participants";
           notes?: string | null;
         };
         Update: {
           name?: string;
           document_type?: "site_map" | "run_sheet" | "vendor_packet" | "insurance_compliance" | "stage_plot" | "parking_load_in" | "misc";
-          visibility?: "owner_only" | "all_participants" | "specific_accounts";
+          visibility?: "owner_only" | "all_participants";
           notes?: string | null;
         };
       };
@@ -302,12 +302,12 @@ export type Database = {
     Enums: {
       platform_role: "platform_admin" | "staff" | "standard";
       account_role: "account_owner" | "account_manager" | "event_coordinator" | "viewer";
-      account_type: "client" | "vendor" | "venue" | "internal";
+      account_type: "client" | "vendor" | "venue" | "internal" | "performer";
       account_status: "active" | "inactive" | "archived";
       event_status: "draft" | "active" | "finalized" | "archived";
       service_status: "pending" | "confirmed" | "cancelled";
       document_type: "site_map" | "run_sheet" | "vendor_packet" | "insurance_compliance" | "stage_plot" | "parking_load_in" | "misc";
-      document_visibility: "owner_only" | "all_participants" | "specific_accounts";
+      document_visibility: "owner_only" | "all_participants";
     };
   };
 };

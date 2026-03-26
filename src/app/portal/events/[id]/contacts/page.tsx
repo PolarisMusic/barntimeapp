@@ -14,109 +14,68 @@ export default async function ContactsPage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, owner_account_id")
+    .select("id, name")
     .eq("id", id)
     .single();
 
   if (!event) notFound();
 
-  // Get contacts from the owner account
-  const { data: ownerContacts } = await supabase
-    .from("account_contacts")
-    .select("*")
-    .eq("account_id", event.owner_account_id)
-    .order("name");
-
-  // Get contacts from participant accounts
-  const { data: participantAccounts } = await supabase
-    .from("event_accounts")
-    .select("account_id, accounts(name), role_label")
-    .eq("event_id", id);
-
-  const participantAccountIds = participantAccounts?.map((p) => p.account_id) || [];
-
-  let participantContacts: { name: string; email: string | null; phone: string | null; role_label: string | null; account_name: string }[] = [];
-  if (participantAccountIds.length > 0) {
-    const { data } = await supabase
-      .from("account_contacts")
-      .select("name, email, phone, role_label, account_id, accounts(name)")
-      .in("account_id", participantAccountIds)
-      .order("name");
-
-    participantContacts = (data || []).map((c) => ({
-      name: c.name,
-      email: c.email,
-      phone: c.phone,
-      role_label: c.role_label,
-      account_name: (c.accounts as unknown as { name: string })?.name || "Unknown",
-    }));
-  }
-
-  // Get event locations as well
-  const { data: locations } = await supabase
-    .from("event_locations")
-    .select("*")
+  // Get event-scoped contact assignments (RLS handles visibility)
+  const { data: assignments } = await supabase
+    .from("event_contact_roles")
+    .select(
+      "id, role_label, visibility, sort_order, account_contacts(name, email, phone, role_label, accounts(name))"
+    )
     .eq("event_id", id)
-    .order("name");
+    .order("sort_order");
 
   return (
     <div className="space-y-6">
       <div>
-        <Link href={`/portal/events/${id}`} className="text-sm text-gray-500 hover:text-gray-700">&larr; {event.name}</Link>
-        <h1 className="mt-1 text-2xl font-bold">Contacts & Locations</h1>
+        <Link
+          href={`/portal/events/${id}`}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          &larr; {event.name}
+        </Link>
+        <h1 className="mt-1 text-2xl font-bold">Contacts</h1>
       </div>
 
-      {/* Locations */}
-      {locations && locations.length > 0 && (
-        <section className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-semibold">Locations</h2>
+      {assignments && assignments.length > 0 ? (
+        <div className="rounded-lg border border-gray-200 bg-white">
           <div className="divide-y divide-gray-100">
-            {locations.map((l) => (
-              <div key={l.id} className="py-2">
-                <p className="text-sm font-medium">{l.name}</p>
-                {l.address && <p className="text-xs text-gray-500">{l.address}</p>}
-              </div>
-            ))}
+            {assignments.map((a) => {
+              const contact = a.account_contacts as unknown as {
+                name: string;
+                email: string | null;
+                phone: string | null;
+                role_label: string | null;
+                accounts: { name: string };
+              };
+              return (
+                <div key={a.id} className="p-4">
+                  <p className="text-sm font-medium">
+                    {contact?.name || "Unknown"}
+                    {a.role_label && (
+                      <span className="ml-2 text-gray-500">
+                        — {a.role_label}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {contact?.accounts?.name || ""}
+                    {contact?.email ? ` | ${contact.email}` : ""}
+                    {contact?.phone ? ` | ${contact.phone}` : ""}
+                  </p>
+                </div>
+              );
+            })}
           </div>
-        </section>
-      )}
-
-      {/* Owner account contacts */}
-      {ownerContacts && ownerContacts.length > 0 && (
-        <section className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-semibold">Event Contacts</h2>
-          <div className="divide-y divide-gray-100">
-            {ownerContacts.map((c) => (
-              <div key={c.id} className="py-2">
-                <p className="text-sm font-medium">{c.name}{c.role_label ? ` — ${c.role_label}` : ""}</p>
-                <p className="text-xs text-gray-500">
-                  {[c.email, c.phone].filter(Boolean).join(" | ") || "No contact info"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Participant contacts */}
-      {participantContacts.length > 0 && (
-        <section className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-semibold">Vendor & Partner Contacts</h2>
-          <div className="divide-y divide-gray-100">
-            {participantContacts.map((c, i) => (
-              <div key={i} className="py-2">
-                <p className="text-sm font-medium">{c.name}{c.role_label ? ` — ${c.role_label}` : ""}</p>
-                <p className="text-xs text-gray-500">
-                  {c.account_name} | {[c.email, c.phone].filter(Boolean).join(" | ") || "No contact info"}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {(!ownerContacts || ownerContacts.length === 0) && participantContacts.length === 0 && (!locations || locations.length === 0) && (
-        <p className="text-gray-500">No contacts or locations available yet.</p>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-500">
+          No contacts assigned to this event yet.
+        </p>
       )}
     </div>
   );

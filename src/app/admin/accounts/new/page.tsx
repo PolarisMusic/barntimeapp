@@ -48,6 +48,7 @@ export default function NewAccountPage() {
             <option value="client">Client</option>
             <option value="vendor">Vendor</option>
             <option value="venue">Venue</option>
+            <option value="performer">Performer</option>
             <option value="internal">Internal</option>
           </select>
         </div>

@@ -59,6 +59,7 @@ export default async function EventDetailPage({
         <Link href={`/admin/events/${id}/services`} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200">Services</Link>
         <Link href={`/admin/events/${id}/schedule`} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200">Schedule</Link>
         <Link href={`/admin/events/${id}/locations`} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200">Locations</Link>
+        <Link href={`/admin/events/${id}/contacts`} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200">Contacts</Link>
         <Link href={`/admin/events/${id}/documents`} className="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200">Documents</Link>
       </div>
 

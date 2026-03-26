@@ -38,9 +38,19 @@ export function DocumentRow({ document }: { document: Document }) {
           {typeLabels[document.document_type] || document.document_type} | {document.visibility.replace("_", " ")} | by {document.uploader_email} | {new Date(document.created_at).toLocaleDateString()}
         </p>
       </div>
-      <button onClick={handleDelete} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
-        Delete
-      </button>
+      <div className="flex items-center gap-2">
+        <a
+          href={`/api/documents/${document.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="rounded-md border border-blue-200 px-2 py-1 text-xs text-blue-600 hover:bg-blue-50"
+        >
+          Download
+        </a>
+        <button onClick={handleDelete} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+          Delete
+        </button>
+      </div>
     </div>
   );
 }

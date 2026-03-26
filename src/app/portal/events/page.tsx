@@ -4,35 +4,51 @@ import { requireProfile } from "@/lib/auth";
 import { StatusBadge } from "@/components/ui/status-badge";
 
 export default async function MyEventsPage() {
-  const profile = await requireProfile();
+  await requireProfile();
   const supabase = await createClient();
 
-  // Get events through account memberships (owner accounts)
-  const { data: ownedEvents } = await supabase
-    .from("events")
-    .select("id, name, status, start_date, end_date, owner_account_id, accounts!events_owner_account_id_fkey(name)")
-    .order("start_date", { ascending: false });
+  // Use the my_events_dashboard() read model RPC
+  const { data: events } = await supabase.rpc("my_events_dashboard");
 
-  // For participant events, we need a different approach since RLS handles filtering
-  // The events query above already uses can_view_event via RLS
+  // Staff also see all events via the RPC (is_staff() path)
+  // Deduplicate by event_id (user could see same event through multiple accounts)
+  const seen = new Set<string>();
+  const uniqueEvents = (events || []).filter((e: { event_id: string }) => {
+    if (seen.has(e.event_id)) return false;
+    seen.add(e.event_id);
+    return true;
+  });
 
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold">My Events</h1>
 
-      {ownedEvents && ownedEvents.length > 0 ? (
+      {uniqueEvents.length > 0 ? (
         <div className="grid gap-4">
-          {ownedEvents.map((event) => (
+          {uniqueEvents.map((event: {
+            event_id: string;
+            event_name: string;
+            event_status: string;
+            start_date: string | null;
+            owner_account_name: string;
+            user_role: string;
+            is_owner_account: boolean;
+          }) => (
             <Link
-              key={event.id}
-              href={`/portal/events/${event.id}`}
+              key={event.event_id}
+              href={`/portal/events/${event.event_id}`}
               className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300 hover:shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-semibold">{event.name}</h2>
+                  <h2 className="font-semibold">{event.event_name}</h2>
                   <p className="text-sm text-gray-500">
-                    {(event.accounts as unknown as { name: string })?.name}
+                    {event.owner_account_name}
+                    {!event.is_owner_account && (
+                      <span className="ml-2 text-xs text-gray-400">
+                        (participant)
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -41,7 +57,7 @@ export default async function MyEventsPage() {
                       {new Date(event.start_date).toLocaleDateString()}
                     </span>
                   )}
-                  <StatusBadge status={event.status} />
+                  <StatusBadge status={event.event_status} />
                 </div>
               </div>
             </Link>

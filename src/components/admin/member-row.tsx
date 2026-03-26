@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   updateMemberRole,
   removeMember,
   addPermission,
   removePermission,
 } from "@/lib/actions/accounts";
-import { FormButton } from "@/components/ui/form-button";
 
 const ALL_PERMISSIONS = [
   "account.manage_members",
@@ -23,6 +22,47 @@ const ALL_PERMISSIONS = [
   "vendor.confirm",
   "event.view_participant",
 ];
+
+// Must match get_default_permissions() in SQL
+const ROLE_DEFAULTS: Record<string, string[]> = {
+  account_owner: [
+    "account.manage_members",
+    "account.manage_contacts",
+    "event.create",
+    "event.view_owned",
+    "event.edit_owned",
+    "event.link_participants",
+    "event.manage_schedule",
+    "event.manage_services",
+    "event.manage_documents",
+    "event.manage_contacts",
+    "vendor.confirm",
+    "event.view_participant",
+  ],
+  account_manager: [
+    "account.manage_contacts",
+    "event.create",
+    "event.view_owned",
+    "event.edit_owned",
+    "event.link_participants",
+    "event.manage_schedule",
+    "event.manage_services",
+    "event.manage_documents",
+    "event.manage_contacts",
+    "vendor.confirm",
+    "event.view_participant",
+  ],
+  event_coordinator: [
+    "event.view_owned",
+    "event.edit_owned",
+    "event.manage_schedule",
+    "event.manage_services",
+    "event.manage_documents",
+    "event.manage_contacts",
+    "event.view_participant",
+  ],
+  viewer: ["event.view_owned", "event.view_participant"],
+};
 
 type MemberRowProps = {
   membership: {
@@ -40,9 +80,17 @@ type MemberRowProps = {
 
 export function MemberRow({ membership, profile, permissions }: MemberRowProps) {
   const [showPerms, setShowPerms] = useState(false);
-  const [perms, setPerms] = useState(permissions.map((p) => p.permission_key));
+  const [role, setRole] = useState(membership.account_role);
+  // Explicit overrides (stored in DB)
+  const [explicitPerms, setExplicitPerms] = useState(
+    permissions.map((p) => p.permission_key)
+  );
+
+  const roleDefaults = useMemo(() => ROLE_DEFAULTS[role] || [], [role]);
 
   async function handleRoleChange(formData: FormData) {
+    const newRole = formData.get("account_role") as string;
+    setRole(newRole);
     await updateMemberRole(membership.id, formData);
   }
 
@@ -53,13 +101,25 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
   }
 
   async function togglePermission(key: string) {
-    if (perms.includes(key)) {
+    const isRoleDefault = roleDefaults.includes(key);
+    const isExplicit = explicitPerms.includes(key);
+
+    if (isRoleDefault) {
+      // Role defaults can't be toggled — they come from the role
+      return;
+    }
+
+    if (isExplicit) {
       await removePermission(membership.id, key);
-      setPerms(perms.filter((p) => p !== key));
+      setExplicitPerms(explicitPerms.filter((p) => p !== key));
     } else {
       await addPermission(membership.id, key);
-      setPerms([...perms, key]);
+      setExplicitPerms([...explicitPerms, key]);
     }
+  }
+
+  function isEffective(key: string) {
+    return roleDefaults.includes(key) || explicitPerms.includes(key);
   }
 
   return (
@@ -101,21 +161,35 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
       </div>
 
       {showPerms && (
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {ALL_PERMISSIONS.map((key) => (
-            <label
-              key={key}
-              className="flex items-center gap-1.5 text-xs text-gray-600"
-            >
-              <input
-                type="checkbox"
-                checked={perms.includes(key)}
-                onChange={() => togglePermission(key)}
-                className="rounded border-gray-300"
-              />
-              {key}
-            </label>
-          ))}
+        <div className="mt-3">
+          <p className="mb-2 text-xs text-gray-400">
+            Checked = effective. Gray background = role default (cannot remove). White = explicit override (can toggle).
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {ALL_PERMISSIONS.map((key) => {
+              const isDefault = roleDefaults.includes(key);
+              const effective = isEffective(key);
+              return (
+                <label
+                  key={key}
+                  className={`flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs ${
+                    isDefault
+                      ? "bg-gray-100 text-gray-500"
+                      : "text-gray-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={effective}
+                    disabled={isDefault}
+                    onChange={() => togglePermission(key)}
+                    className="rounded border-gray-300"
+                  />
+                  {key}
+                </label>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

@@ -1,11 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServiceClient, createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin, requireProfile } from "@/lib/auth";
+import { checkHasAccountPermission } from "@/lib/permissions";
 import { logActivity } from "./activity-log";
 
+// --- Account CRUD (staff-only for global operations) ---
+
 export async function createAccount(formData: FormData) {
+  // Staff-only: creating accounts globally
   const profile = await requireAdmin();
   const supabase = await createServiceClient();
 
@@ -20,7 +24,7 @@ export async function createAccount(formData: FormData) {
     .from("accounts")
     .insert({
       name: name.trim(),
-      type: (type || "client") as "client" | "vendor" | "venue" | "internal",
+      type: (type || "client") as "client" | "vendor" | "venue" | "internal" | "performer",
     })
     .select()
     .single();
@@ -40,6 +44,7 @@ export async function createAccount(formData: FormData) {
 }
 
 export async function updateAccount(accountId: string, formData: FormData) {
+  // Staff-only: modifying account type/status is administrative
   const profile = await requireAdmin();
   const supabase = await createServiceClient();
 
@@ -52,7 +57,7 @@ export async function updateAccount(accountId: string, formData: FormData) {
     .from("accounts")
     .update({
       name: name?.trim() || undefined,
-      type: type as "client" | "vendor" | "venue" | "internal" | undefined,
+      type: type as "client" | "vendor" | "venue" | "internal" | "performer" | undefined,
       status: status as "active" | "inactive" | "archived" | undefined,
       notes: notes || null,
     })
@@ -75,7 +80,10 @@ export async function updateAccount(accountId: string, formData: FormData) {
   return { data: account };
 }
 
+// --- Member Management (staff-only for invite, permission-based for role changes) ---
+
 export async function inviteMemberToAccount(formData: FormData) {
+  // Staff-only: inviting members uses admin API
   const profile = await requireAdmin();
   const supabase = await createServiceClient();
 
@@ -140,12 +148,31 @@ export async function inviteMemberToAccount(formData: FormData) {
 }
 
 export async function updateMemberRole(membershipId: string, formData: FormData) {
-  const profile = await requireAdmin();
+  const profile = await requireProfile();
   const supabase = await createServiceClient();
+
+  // Get membership to find account_id for permission check
+  const { data: membership } = await supabase
+    .from("account_memberships")
+    .select("account_id, profile_id")
+    .eq("id", membershipId)
+    .single();
+
+  if (!membership) return { error: "Membership not found" };
+
+  // Permission check: account.manage_members via DB helper
+  if (!(await checkHasAccountPermission(membership.account_id, "account.manage_members"))) {
+    return { error: "Permission denied: cannot manage members for this account" };
+  }
+
+  // Prevent self-demotion for safety
+  if (membership.profile_id === profile.id) {
+    return { error: "Cannot change your own role" };
+  }
 
   const accountRole = formData.get("account_role") as string;
 
-  const { data: membership, error } = await supabase
+  const { data: updated, error } = await supabase
     .from("account_memberships")
     .update({
       account_role: accountRole as
@@ -163,17 +190,17 @@ export async function updateMemberRole(membershipId: string, formData: FormData)
   await logActivity({
     actorId: profile.id,
     entityType: "account",
-    entityId: membership.account_id,
+    entityId: updated.account_id,
     action: "member.role_changed",
     summary: `Changed member role to ${accountRole}`,
   });
 
-  revalidatePath(`/admin/accounts/${membership.account_id}`);
-  return { data: membership };
+  revalidatePath(`/admin/accounts/${updated.account_id}`);
+  return { data: updated };
 }
 
 export async function removeMember(membershipId: string) {
-  const profile = await requireAdmin();
+  const profile = await requireProfile();
   const supabase = await createServiceClient();
 
   // Get membership info before deleting
@@ -184,6 +211,16 @@ export async function removeMember(membershipId: string) {
     .single();
 
   if (!membership) return { error: "Membership not found" };
+
+  // Permission check: account.manage_members via DB helper
+  if (!(await checkHasAccountPermission(membership.account_id, "account.manage_members"))) {
+    return { error: "Permission denied: cannot manage members for this account" };
+  }
+
+  // Prevent self-removal
+  if (membership.profile_id === profile.id) {
+    return { error: "Cannot remove yourself from the account" };
+  }
 
   const { error } = await supabase
     .from("account_memberships")
@@ -204,9 +241,23 @@ export async function removeMember(membershipId: string) {
   return { data: true };
 }
 
+// --- Permission Grants (staff or account.manage_members holders) ---
+
 export async function addPermission(membershipId: string, permissionKey: string) {
-  const profile = await requireAdmin();
+  const profile = await requireProfile();
   const supabase = await createServiceClient();
+
+  const { data: membership } = await supabase
+    .from("account_memberships")
+    .select("account_id")
+    .eq("id", membershipId)
+    .single();
+
+  if (!membership) return { error: "Membership not found" };
+
+  if (!(await checkHasAccountPermission(membership.account_id, "account.manage_members"))) {
+    return { error: "Permission denied" };
+  }
 
   const { error } = await supabase
     .from("account_membership_permissions")
@@ -224,8 +275,20 @@ export async function addPermission(membershipId: string, permissionKey: string)
 }
 
 export async function removePermission(membershipId: string, permissionKey: string) {
-  const profile = await requireAdmin();
+  const profile = await requireProfile();
   const supabase = await createServiceClient();
+
+  const { data: membership } = await supabase
+    .from("account_memberships")
+    .select("account_id")
+    .eq("id", membershipId)
+    .single();
+
+  if (!membership) return { error: "Membership not found" };
+
+  if (!(await checkHasAccountPermission(membership.account_id, "account.manage_members"))) {
+    return { error: "Permission denied" };
+  }
 
   const { error } = await supabase
     .from("account_membership_permissions")
