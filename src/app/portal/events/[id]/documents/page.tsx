@@ -1,0 +1,70 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { requireProfile } from "@/lib/auth";
+
+const typeLabels: Record<string, string> = {
+  site_map: "Site Map",
+  run_sheet: "Run Sheet",
+  vendor_packet: "Vendor Packet",
+  insurance_compliance: "Insurance/Compliance",
+  stage_plot: "Stage Plot",
+  parking_load_in: "Parking/Load-in",
+  misc: "Misc",
+};
+
+export default async function DocumentsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  await requireProfile();
+  const { id } = await params;
+  const supabase = await createClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, name")
+    .eq("id", id)
+    .single();
+
+  if (!event) notFound();
+
+  // RLS handles document visibility (owner_only vs all_participants)
+  const { data: documents } = await supabase
+    .from("event_documents")
+    .select("*")
+    .eq("event_id", id)
+    .order("created_at", { ascending: false });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Link href={`/portal/events/${id}`} className="text-sm text-gray-500 hover:text-gray-700">&larr; {event.name}</Link>
+        <h1 className="mt-1 text-2xl font-bold">Documents</h1>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white">
+        {documents && documents.length > 0 ? (
+          <div className="divide-y divide-gray-200">
+            {documents.map((d) => (
+              <div key={d.id} className="flex items-center justify-between p-4">
+                <div>
+                  <p className="text-sm font-medium">{d.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {typeLabels[d.document_type] || d.document_type} | {new Date(d.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+                  {d.file_type || "file"}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="p-6 text-sm text-gray-500">No documents available.</p>
+        )}
+      </div>
+    </div>
+  );
+}

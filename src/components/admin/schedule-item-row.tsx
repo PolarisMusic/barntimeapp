@@ -1,0 +1,47 @@
+"use client";
+
+import { deleteScheduleItem } from "@/lib/actions/events";
+
+type ScheduleItem = {
+  id: string;
+  title: string;
+  start_time: string | null;
+  end_time: string | null;
+  location_name: string | null;
+  description: string | null;
+  sort_order: number;
+};
+
+function formatTime(iso: string | null) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function ScheduleItemRow({ item }: { item: ScheduleItem }) {
+  async function handleDelete() {
+    if (confirm(`Delete "${item.title}"?`)) {
+      await deleteScheduleItem(item.id);
+    }
+  }
+
+  return (
+    <div className="flex items-center justify-between p-4">
+      <div>
+        <p className="text-sm font-medium">{item.title}</p>
+        <p className="text-xs text-gray-500">
+          {formatTime(item.start_time)} — {formatTime(item.end_time)}
+          {item.location_name && ` @ ${item.location_name}`}
+        </p>
+        {item.description && <p className="mt-1 text-xs text-gray-400">{item.description}</p>}
+      </div>
+      <button onClick={handleDelete} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+        Delete
+      </button>
+    </div>
+  );
+}
