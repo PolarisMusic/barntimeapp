@@ -793,6 +793,89 @@ BEGIN
 END $$;
 
 
+-- TEST B22: event_summary counts are visibility-aware for owner (sees everything)
+DO $$
+DECLARE
+  rec record;
+BEGIN
+  SET LOCAL role = 'authenticated';
+  SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-000000000003"}';
+
+  SELECT * INTO rec FROM event_summary('20000000-0000-0000-0000-000000000001');
+
+  ASSERT rec.service_count = 2, 'Owner summary should count all 2 services (got ' || rec.service_count || ')';
+  ASSERT rec.schedule_item_count = 2, 'Owner summary should count all 2 schedule items (got ' || rec.schedule_item_count || ')';
+  ASSERT rec.document_count = 2, 'Owner summary should count all 2 documents (got ' || rec.document_count || ')';
+  ASSERT rec.contact_count = 2, 'Owner summary should count all 2 contacts (got ' || rec.contact_count || ')';
+  ASSERT rec.location_count = 1, 'Owner summary should count 1 location (got ' || rec.location_count || ')';
+
+  RESET role;
+  RAISE NOTICE 'PASS: B22 — event_summary counts are correct for owner (full visibility)';
+END $$;
+
+-- TEST B23: event_summary counts are visibility-aware for limited participant
+DO $$
+DECLARE
+  rec record;
+BEGIN
+  SET LOCAL role = 'authenticated';
+  SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-000000000006"}';
+
+  SELECT * INTO rec FROM event_summary('20000000-0000-0000-0000-000000000001');
+
+  ASSERT rec.event_id IS NOT NULL, 'Limited participant should get event_summary result';
+  -- Limited: sees only own-account services (PA System = 1)
+  ASSERT rec.service_count = 1, 'Limited participant summary should count 1 service (got ' || rec.service_count || ')';
+  -- Limited: blocked from schedule
+  ASSERT rec.schedule_item_count = 0, 'Limited participant summary should count 0 schedule items (got ' || rec.schedule_item_count || ')';
+  -- Limited: sees only all_participants documents (Site Map = 1)
+  ASSERT rec.document_count = 1, 'Limited participant summary should count 1 document (got ' || rec.document_count || ')';
+  -- Limited: sees only all_participants contacts (Sound Tech = 1)
+  ASSERT rec.contact_count = 1, 'Limited participant summary should count 1 contact (got ' || rec.contact_count || ')';
+  -- Limited: blocked from locations
+  ASSERT rec.location_count = 0, 'Limited participant summary should count 0 locations (got ' || rec.location_count || ')';
+
+  RESET role;
+  RAISE NOTICE 'PASS: B23 — event_summary counts are visibility-aware for limited participant';
+END $$;
+
+-- TEST B24: event_summary counts are correct for standard participant
+DO $$
+DECLARE
+  rec record;
+BEGIN
+  -- Upgrade to standard
+  UPDATE event_accounts SET visibility = 'standard'
+  WHERE event_id = '20000000-0000-0000-0000-000000000001'
+    AND account_id = '10000000-0000-0000-0000-000000000002';
+
+  SET LOCAL role = 'authenticated';
+  SET LOCAL request.jwt.claims = '{"sub":"00000000-0000-0000-0000-000000000006"}';
+
+  SELECT * INTO rec FROM event_summary('20000000-0000-0000-0000-000000000001');
+
+  -- Standard: sees all services
+  ASSERT rec.service_count = 2, 'Standard participant summary should count 2 services (got ' || rec.service_count || ')';
+  -- Standard: sees schedule
+  ASSERT rec.schedule_item_count = 2, 'Standard participant summary should count 2 schedule items (got ' || rec.schedule_item_count || ')';
+  -- Standard: still only all_participants documents
+  ASSERT rec.document_count = 1, 'Standard participant summary should count 1 document (got ' || rec.document_count || ')';
+  -- Standard: still only all_participants contacts
+  ASSERT rec.contact_count = 1, 'Standard participant summary should count 1 contact (got ' || rec.contact_count || ')';
+  -- Standard: sees locations
+  ASSERT rec.location_count = 1, 'Standard participant summary should count 1 location (got ' || rec.location_count || ')';
+
+  RESET role;
+
+  -- Reset to limited
+  UPDATE event_accounts SET visibility = 'limited'
+  WHERE event_id = '20000000-0000-0000-0000-000000000001'
+    AND account_id = '10000000-0000-0000-0000-000000000002';
+
+  RAISE NOTICE 'PASS: B24 — event_summary counts are correct for standard participant';
+END $$;
+
+
 -- ============================================================
 -- CLEANUP
 -- ============================================================

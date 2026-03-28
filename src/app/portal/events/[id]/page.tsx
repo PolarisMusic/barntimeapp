@@ -21,6 +21,47 @@ export default async function EventOverviewPage({
   const summary = summaryRows?.[0];
   if (!summary) notFound();
 
+  const isLimited =
+    !summary.is_owner &&
+    summary.participant_visibility_level === "limited";
+
+  // Build section cards — only show sections the user can actually access
+  const sections: { href: string; count: number; label: string }[] = [];
+
+  if (!isLimited) {
+    sections.push({
+      href: `/portal/events/${id}/schedule`,
+      count: Number(summary.schedule_item_count ?? 0),
+      label: "Schedule",
+    });
+  }
+
+  sections.push({
+    href: `/portal/events/${id}/services`,
+    count: Number(summary.service_count ?? 0),
+    label: "Services",
+  });
+
+  sections.push({
+    href: `/portal/events/${id}/documents`,
+    count: Number(summary.document_count ?? 0),
+    label: "Documents",
+  });
+
+  sections.push({
+    href: `/portal/events/${id}/contacts`,
+    count: Number(summary.contact_count ?? 0),
+    label: "Contacts",
+  });
+
+  if (!isLimited) {
+    sections.push({
+      href: `/portal/events/${id}/locations`,
+      count: Number(summary.location_count ?? 0),
+      label: "Locations",
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -50,45 +91,22 @@ export default async function EventOverviewPage({
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <Link
-          href={`/portal/events/${id}/schedule`}
-          className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
-        >
-          <p className="text-2xl font-bold">{summary.schedule_item_count}</p>
-          <p className="text-sm text-gray-500">Schedule</p>
-        </Link>
-        <Link
-          href={`/portal/events/${id}/services`}
-          className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
-        >
-          <p className="text-2xl font-bold">{summary.service_count}</p>
-          <p className="text-sm text-gray-500">Services</p>
-        </Link>
-        <Link
-          href={`/portal/events/${id}/documents`}
-          className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
-        >
-          <p className="text-2xl font-bold">{summary.document_count}</p>
-          <p className="text-sm text-gray-500">Documents</p>
-        </Link>
-        <Link
-          href={`/portal/events/${id}/contacts`}
-          className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
-        >
-          <p className="text-2xl font-bold">{summary.contact_count ?? 0}</p>
-          <p className="text-sm text-gray-500">Contacts</p>
-        </Link>
-        <Link
-          href={`/portal/events/${id}/locations`}
-          className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
-        >
-          <p className="text-2xl font-bold">{summary.location_count ?? 0}</p>
-          <p className="text-sm text-gray-500">Locations</p>
-        </Link>
-        <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <p className="text-2xl font-bold">{summary.participant_count}</p>
-          <p className="text-sm text-gray-500">Participants</p>
-        </div>
+        {sections.map((s) => (
+          <Link
+            key={s.label}
+            href={s.href}
+            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
+          >
+            <p className="text-2xl font-bold">{s.count}</p>
+            <p className="text-sm text-gray-500">{s.label}</p>
+          </Link>
+        ))}
+        {summary.is_owner && (
+          <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <p className="text-2xl font-bold">{summary.participant_count}</p>
+            <p className="text-sm text-gray-500">Participants</p>
+          </div>
+        )}
       </div>
 
       {/* Inline permission indicators for the current user */}
