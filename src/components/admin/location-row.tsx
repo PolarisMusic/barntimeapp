@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { deleteLocation } from "@/lib/actions/events";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 type Location = {
   id: string;
@@ -12,14 +16,29 @@ type Location = {
 };
 
 export function LocationRow({ location }: { location: Location }) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   async function handleDelete() {
-    if (confirm(`Delete location "${location.name}"?`)) {
-      await deleteLocation(location.id);
+    const result = await deleteLocation(location.id);
+    if (result?.error) {
+      toast(result.error, "error");
+    } else {
+      router.refresh();
     }
   }
 
   return (
     <div className="flex items-center justify-between p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete Location"
+        message={`Delete location "${location.name}"?`}
+        confirmLabel="Delete"
+        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div>
         <p className="text-sm font-medium">
           {location.name}
@@ -42,7 +61,7 @@ export function LocationRow({ location }: { location: Location }) {
           </a>
         )}
       </div>
-      <button onClick={handleDelete} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+      <button onClick={() => setConfirmOpen(true)} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
         Delete
       </button>
     </div>

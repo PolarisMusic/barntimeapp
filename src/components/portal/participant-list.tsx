@@ -7,6 +7,8 @@ import {
   unlinkParticipantAccount,
   updateParticipant,
 } from "@/lib/actions/events";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 type Participant = {
   accountId: string;
@@ -75,7 +77,7 @@ export function PortalParticipantList({
           <p className="text-sm text-gray-500">
             {availableAccounts.length > 0
               ? "No participant accounts linked yet. Use the button below to add participants."
-              : "No participant accounts linked yet."}
+              : "No approved participant accounts are available for this event yet."}
           </p>
         </div>
       )}
@@ -164,12 +166,13 @@ function ParticipantItem({
   participant: Participant;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [updating, setUpdating] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleUnlink() {
-    if (!confirm(`Remove "${participant.accountName}" from this event?`)) return;
     setUpdating(true);
     setError(null);
     const result = await unlinkParticipantAccount(eventId, participant.accountId);
@@ -188,7 +191,7 @@ function ParticipantItem({
     const result = await updateParticipant(eventId, participant.accountId, { visibility: newVis });
     setUpdating(false);
     if (result.error) {
-      setError(result.error);
+      toast(result.error, "error");
     } else {
       router.refresh();
     }
@@ -202,7 +205,7 @@ function ParticipantItem({
       const result = await updateParticipant(eventId, participant.accountId, { role_label: newLabel });
       setUpdating(false);
       if (result.error) {
-        setError(result.error);
+        toast(result.error, "error");
       } else {
         router.refresh();
       }
@@ -213,6 +216,17 @@ function ParticipantItem({
 
   return (
     <div className="p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove Participant"
+        message={`Remove "${participant.accountName}" from this event?`}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleUnlink();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
@@ -238,7 +252,7 @@ function ParticipantItem({
           </select>
         </div>
         <button
-          onClick={handleUnlink}
+          onClick={() => setConfirmOpen(true)}
           disabled={updating}
           className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
         >

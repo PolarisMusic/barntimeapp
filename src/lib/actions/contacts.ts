@@ -240,6 +240,7 @@ export async function assignContactToEvent(formData: FormData) {
     entityId: eventId,
     action: "contact.assigned",
     summary: `Assigned contact to event`,
+    details: { subject_type: "contact", visibility_scope: visibility || "owner_only" },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -275,6 +276,7 @@ export async function updateContactVisibility(
     entityId: eventId,
     action: "contact.role_updated",
     summary: `Changed contact visibility to ${validVisibility}`,
+    details: { subject_type: "contact", visibility_scope: validVisibility, field_names: ["visibility"] },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -304,6 +306,7 @@ export async function removeContactFromEvent(eventId: string, contactRoleId: str
     entityId: eventId,
     action: "contact.unassigned",
     summary: `Removed contact from event`,
+    details: { subject_type: "contact" },
   });
 
   revalidatePath(`/admin/events/${eventId}`);

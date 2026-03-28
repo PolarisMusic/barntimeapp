@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { unlinkParticipantAccount, updateParticipant } from "@/lib/actions/events";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 type ParticipantRowProps = {
   eventId: string;
@@ -15,34 +17,54 @@ type ParticipantRowProps = {
 
 export function ParticipantRow({ eventId, accountId, account, roleLabel, visibility }: ParticipantRowProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [updating, setUpdating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleUnlink() {
-    if (confirm(`Remove "${account.name}" from this event?`)) {
-      await unlinkParticipantAccount(eventId, accountId);
+    const result = await unlinkParticipantAccount(eventId, accountId);
+    if (result?.error) {
+      toast(result.error, "error");
+    } else {
       router.refresh();
     }
   }
 
   async function handleVisibilityChange(newVisibility: string) {
     setUpdating(true);
-    await updateParticipant(eventId, accountId, { visibility: newVisibility });
+    const result = await updateParticipant(eventId, accountId, { visibility: newVisibility });
     setUpdating(false);
-    router.refresh();
+    if (result?.error) {
+      toast(result.error, "error");
+    } else {
+      router.refresh();
+    }
   }
 
   async function handleRoleLabelBlur(e: React.FocusEvent<HTMLInputElement>) {
     const newLabel = e.target.value;
     if (newLabel !== (roleLabel || "")) {
       setUpdating(true);
-      await updateParticipant(eventId, accountId, { role_label: newLabel });
+      const result = await updateParticipant(eventId, accountId, { role_label: newLabel });
       setUpdating(false);
-      router.refresh();
+      if (result?.error) {
+        toast(result.error, "error");
+      } else {
+        router.refresh();
+      }
     }
   }
 
   return (
     <div className="flex items-center justify-between p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove Participant"
+        message={`Remove "${account.name}" from this event?`}
+        confirmLabel="Remove"
+        onConfirm={() => { setConfirmOpen(false); handleUnlink(); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div className="flex items-center gap-4">
         <div>
           <Link href={`/admin/accounts/${account.id}`} className="text-sm font-medium text-blue-600 hover:text-blue-800">
@@ -68,7 +90,7 @@ export function ParticipantRow({ eventId, accountId, account, roleLabel, visibil
           <option value="standard">Standard</option>
         </select>
       </div>
-      <button onClick={handleUnlink} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+      <button onClick={() => setConfirmOpen(true)} className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50">
         Unlink
       </button>
     </div>

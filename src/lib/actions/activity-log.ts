@@ -9,6 +9,7 @@ export async function logActivity(params: {
   action: string;
   summary?: string;
   metadata?: Record<string, unknown>;
+  details?: Record<string, unknown>;
 }) {
   const supabase = await createServiceClient();
   await supabase.from("activity_log").insert({
@@ -18,5 +19,6 @@ export async function logActivity(params: {
     action: params.action,
     summary: params.summary ?? null,
     metadata: params.metadata ?? null,
+    details: params.details ?? null,
   });
 }

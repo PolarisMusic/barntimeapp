@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { AccountEditForm } from "@/components/admin/account-edit-form";
+import { LinkableAccountsManager } from "@/components/admin/linkable-accounts-manager";
+import { getLinkableAllowlist, getAllAccountsExcept } from "@/lib/actions/linkable-accounts";
 
 export default async function AccountDetailPage({
   params,
@@ -33,6 +35,11 @@ export default async function AccountDetailPage({
     .select("*")
     .eq("account_id", id)
     .order("created_at");
+
+  const [linkableAllowlist, allAccounts] = await Promise.all([
+    getLinkableAllowlist(id),
+    getAllAccountsExcept(id),
+  ]);
 
   const { data: events } = await supabase
     .from("events")
@@ -104,6 +111,21 @@ export default async function AccountDetailPage({
         ) : (
           <p className="text-sm text-gray-500">No members yet.</p>
         )}
+      </section>
+
+      {/* Participant Allowlist */}
+      <section className="rounded-lg border border-gray-200 bg-white p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold">Participant Allowlist</h2>
+          <p className="mt-1 text-xs text-gray-500">
+            Accounts that can appear in the portal participant picker for events owned by this account.
+          </p>
+        </div>
+        <LinkableAccountsManager
+          ownerAccountId={id}
+          allowlist={linkableAllowlist}
+          allAccounts={allAccounts}
+        />
       </section>
 
       {/* Contacts */}

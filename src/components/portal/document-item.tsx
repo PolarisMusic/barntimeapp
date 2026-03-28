@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocument, updateDocument } from "@/lib/actions/documents";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 const typeLabels: Record<string, string> = {
   site_map: "Site Map",
@@ -39,11 +41,13 @@ export function DocumentItem({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [deleting, setDeleting] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Edit fields
   const [name, setName] = useState(doc.name);
@@ -52,11 +56,10 @@ export function DocumentItem({
   const [notes, setNotes] = useState(doc.notes || "");
 
   async function handleDelete() {
-    if (!confirm(`Delete "${doc.name}"?`)) return;
     setDeleting(true);
     const result = await deleteDocument(doc.id);
     if (result.error) {
-      alert(result.error);
+      toast(result.error, "error");
       setDeleting(false);
     } else {
       setDeleted(true);
@@ -163,6 +166,17 @@ export function DocumentItem({
 
   return (
     <div className="flex items-center justify-between p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete Document"
+        message={`Delete "${doc.name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleDelete();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div>
         <p className="text-sm font-medium">{doc.name}</p>
         <p className="text-xs text-gray-500">
@@ -199,7 +213,7 @@ export function DocumentItem({
               Edit
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmOpen(true)}
               disabled={deleting}
               className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
             >

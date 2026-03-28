@@ -61,9 +61,11 @@ src/
 │       ├── events.ts
 │       ├── contacts.ts
 │       ├── documents.ts
+│       ├── linkable-accounts.ts # Curated participant allowlist management
 │       └── activity-log.ts
 ├── types/
-│   └── database.ts              # TypeScript types for database tables
+│   ├── database.ts              # Re-export from generated types
+│   └── database.generated.ts    # Generated types (npm run db:types)
 └── middleware.ts                 # Next.js middleware (auth redirect)
 
 supabase/
@@ -74,7 +76,8 @@ supabase/
 │   ├── 00004_unify_permission_checks.sql # Unify all helpers on computed-default model
 │   ├── 00005_visibility_aware_counts.sql # Visibility-aware event_summary counts
 │   ├── 00006_dashboard_enhancements.sql  # Dashboard RPCs with location/schedule/timezone
-│   └── 00007_fix_dashboard_dedupe.sql    # DISTINCT ON dedupe for dashboard
+│   ├── 00007_fix_dashboard_dedupe.sql    # DISTINCT ON dedupe for dashboard
+│   └── 00008_linkable_accounts_and_activity_details.sql # Curated participant directory + structured activity details
 ├── seed.sql                     # Example seed data template
 └── tests/
     └── permission_tests.sql     # Permission integration tests (data + auth context)
@@ -98,7 +101,8 @@ supabase/
 | `event_services` | Services/vendors for an event |
 | `event_schedule_items` | Timeline items for an event |
 | `event_documents` | Files attached to an event |
-| `activity_log` | Audit trail for all mutations |
+| `account_linkable_accounts` | Curated allowlist of accounts for the participant picker |
+| `activity_log` | Audit trail for all mutations (with structured details) |
 
 ### Permission Model (3 Layers)
 
@@ -210,6 +214,16 @@ supabase db push
 # 5. supabase/migrations/00005_visibility_aware_counts.sql
 # 6. supabase/migrations/00006_dashboard_enhancements.sql
 # 7. supabase/migrations/00007_fix_dashboard_dedupe.sql
+# 8. supabase/migrations/00008_linkable_accounts_and_activity_details.sql
+```
+
+### Type Generation
+
+Database types are generated from the schema. To regenerate:
+
+```bash
+npm run db:types         # Requires local Supabase (supabase start)
+npm run db:types:check   # CI: fails if types are stale
 ```
 
 ### Storage Setup

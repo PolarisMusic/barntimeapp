@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   updateMemberRole,
   removeMember,
   addPermission,
   removePermission,
 } from "@/lib/actions/accounts";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 const ALL_PERMISSIONS = [
   "account.manage_members",
@@ -79,7 +82,10 @@ type MemberRowProps = {
 };
 
 export function MemberRow({ membership, profile, permissions }: MemberRowProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const [showPerms, setShowPerms] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [role, setRole] = useState(membership.account_role);
   // Explicit overrides (stored in DB)
   const [explicitPerms, setExplicitPerms] = useState(
@@ -95,8 +101,11 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
   }
 
   async function handleRemove() {
-    if (confirm("Remove this member?")) {
-      await removeMember(membership.id);
+    const result = await removeMember(membership.id);
+    if (result?.error) {
+      toast(result.error, "error");
+    } else {
+      router.refresh();
     }
   }
 
@@ -124,6 +133,14 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
 
   return (
     <div className="p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove Member"
+        message={`Remove ${profile.email} from this account?`}
+        confirmLabel="Remove"
+        onConfirm={() => { setConfirmOpen(false); handleRemove(); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">{profile.email}</p>
@@ -152,7 +169,7 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
             Permissions
           </button>
           <button
-            onClick={handleRemove}
+            onClick={() => setConfirmOpen(true)}
             className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
           >
             Remove

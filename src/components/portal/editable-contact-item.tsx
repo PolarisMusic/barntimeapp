@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { updateEventContactRoleLabel } from "@/lib/actions/events";
 import { removeContactFromEvent, updateContactVisibility } from "@/lib/actions/contacts";
 import { InlineEditField } from "./inline-edit-field";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function EditableContactItem({
   assignment,
@@ -27,16 +29,17 @@ export function EditableContactItem({
   canManage: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [removing, setRemoving] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [visUpdating, setVisUpdating] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleRemove() {
-    if (!confirm(`Remove ${assignment.contact.name} from this event?`)) return;
     setRemoving(true);
     const result = await removeContactFromEvent(eventId, assignment.id);
     if (result.error) {
-      alert(result.error);
+      toast(result.error, "error");
       setRemoving(false);
     } else {
       setRemoved(true);
@@ -49,7 +52,7 @@ export function EditableContactItem({
     const result = await updateContactVisibility(assignment.id, eventId, newVisibility);
     setVisUpdating(false);
     if (result.error) {
-      alert(result.error);
+      toast(result.error, "error");
     } else {
       router.refresh();
     }
@@ -59,6 +62,17 @@ export function EditableContactItem({
 
   return (
     <div className="p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove Contact"
+        message={`Remove ${assignment.contact.name} from this event?`}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleRemove();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium">
@@ -115,7 +129,7 @@ export function EditableContactItem({
           </div>
           {canManage && (
             <button
-              onClick={handleRemove}
+              onClick={() => setConfirmOpen(true)}
               disabled={removing}
               className="shrink-0 rounded px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
             >

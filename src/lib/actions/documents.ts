@@ -71,6 +71,7 @@ export async function uploadDocument(formData: FormData) {
     action: "document.uploaded",
     summary: `Uploaded document "${name}"`,
     metadata: { documentType, visibility: validVisibility },
+    details: { subject_type: "document", subject_name: name, document_type: documentType, visibility_scope: validVisibility },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -129,6 +130,7 @@ export async function updateDocument(documentId: string, formData: FormData) {
     entityId: updated.event_id,
     action: "document.updated",
     summary: `Updated document "${updated.name}"`,
+    details: { subject_type: "document", subject_name: updated.name },
   });
 
   revalidatePath(`/admin/events/${updated.event_id}`);
@@ -168,6 +170,7 @@ export async function deleteDocument(documentId: string) {
     entityId: doc.event_id,
     action: "document.deleted",
     summary: `Deleted document "${doc.name}"`,
+    details: { subject_type: "document", subject_name: doc.name },
   });
 
   revalidatePath(`/admin/events/${doc.event_id}`);

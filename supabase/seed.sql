@@ -96,6 +96,16 @@ INSERT INTO account_contacts (id, account_id, name, email, phone, role_label) VA
   ('dddddddd-0000-0000-0000-000000000007', 'cccccccc-0000-0000-0000-000000000004', 'Tom Park',      'tom@redwoodestate.com',   '555-0302', 'Groundskeeper');
 
 -- ---------------------------------------------------------------------------
+-- LINKABLE ACCOUNTS ALLOWLIST
+-- (Sunset Weddings can link these accounts as event participants)
+-- ---------------------------------------------------------------------------
+INSERT INTO account_linkable_accounts (owner_account_id, linkable_account_id) VALUES
+  ('cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000003'),  -- Bay Area Sound
+  ('cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000004'),  -- Redwood Estate
+  ('cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000005'),  -- Napa Valley Florals
+  ('cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000006');  -- Pacific Photo Studios
+
+-- ---------------------------------------------------------------------------
 -- EVENT
 -- ---------------------------------------------------------------------------
 INSERT INTO events (id, owner_account_id, name, status, start_date, end_date, description, timezone) VALUES

@@ -51,6 +51,7 @@ export async function createEvent(formData: FormData) {
     entityId: event.id,
     action: "event.created",
     summary: `Created event "${event.name}"`,
+    details: { subject_type: "event", subject_name: event.name },
   });
 
   revalidatePath("/admin/events");
@@ -97,6 +98,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
     entityId: eventId,
     action: "event.updated",
     summary: `Updated event "${event.name}"`,
+    details: { subject_type: "event", subject_name: event.name },
   });
 
   revalidatePath("/admin/events");
@@ -136,6 +138,12 @@ export async function linkParticipantAccount(formData: FormData) {
     return { error: "Cannot link the owner account as a participant" };
   }
 
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("id", accountId)
+    .single();
+
   const validVisibility = visibility === "standard" ? "standard" : "limited";
 
   const { error } = await supabase.from("event_accounts").insert({
@@ -156,8 +164,9 @@ export async function linkParticipantAccount(formData: FormData) {
     entityType: "event",
     entityId: eventId,
     action: "participant.linked",
-    summary: `Linked participant account to event "${event.name}"`,
+    summary: `Linked participant account to event`,
     metadata: { accountId, roleLabel, visibility: validVisibility },
+    details: { subject_type: "participant", subject_name: account?.name || accountId, role_label: roleLabel, visibility_scope: validVisibility },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -201,6 +210,7 @@ export async function updateParticipant(
     action: "participant.updated",
     summary: `Updated participant settings`,
     metadata: { accountId, ...updates },
+    details: { subject_type: "participant", subject_name: accountId, field_names: Object.keys(updates) },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -232,6 +242,7 @@ export async function unlinkParticipantAccount(eventId: string, accountId: strin
     action: "participant.unlinked",
     summary: `Removed participant account from event`,
     metadata: { accountId },
+    details: { subject_type: "participant", subject_name: accountId },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -275,6 +286,7 @@ export async function createService(formData: FormData) {
     entityId: eventId,
     action: "service.created",
     summary: `Added service "${name}" to event`,
+    details: { subject_type: "service", subject_name: name },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -324,6 +336,7 @@ export async function updateService(serviceId: string, formData: FormData) {
     entityId: updated.event_id,
     action: "service.updated",
     summary: `Updated service "${updated.name}"`,
+    details: { subject_type: "service", subject_name: updated.name },
   });
 
   revalidatePath(`/admin/events/${updated.event_id}`);
@@ -369,6 +382,7 @@ export async function confirmVendor(serviceId: string) {
     entityId: service.event_id,
     action: "vendor.confirmed",
     summary: `Confirmed vendor service "${service.name}"`,
+    details: { subject_type: "service", subject_name: service.name },
   });
 
   revalidatePath(`/admin/events/${service.event_id}`);
@@ -405,6 +419,7 @@ export async function deleteService(serviceId: string) {
     entityId: service.event_id,
     action: "service.deleted",
     summary: `Deleted service "${service.name}"`,
+    details: { subject_type: "service", subject_name: service.name },
   });
 
   revalidatePath(`/admin/events/${service.event_id}`);
@@ -452,6 +467,7 @@ export async function createScheduleItem(formData: FormData) {
     entityId: eventId,
     action: "schedule.item_created",
     summary: `Added schedule item "${title}"`,
+    details: { subject_type: "schedule", subject_name: title },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -504,6 +520,7 @@ export async function updateScheduleItem(itemId: string, formData: FormData) {
     entityId: updated.event_id,
     action: "schedule.item_updated",
     summary: `Updated schedule item "${updated.title}"`,
+    details: { subject_type: "schedule", subject_name: updated.title },
   });
 
   revalidatePath(`/admin/events/${updated.event_id}`);
@@ -540,6 +557,7 @@ export async function deleteScheduleItem(itemId: string) {
     entityId: item.event_id,
     action: "schedule.item_deleted",
     summary: `Deleted schedule item "${item.title}"`,
+    details: { subject_type: "schedule", subject_name: item.title },
   });
 
   revalidatePath(`/admin/events/${item.event_id}`);
@@ -587,6 +605,7 @@ export async function createLocation(formData: FormData) {
     entityId: eventId,
     action: "location.created",
     summary: `Added location "${name}"`,
+    details: { subject_type: "location", subject_name: name },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -637,6 +656,7 @@ export async function updateLocation(locationId: string, formData: FormData) {
     entityId: updated.event_id,
     action: "location.updated",
     summary: `Updated location "${updated.name}"`,
+    details: { subject_type: "location", subject_name: updated.name },
   });
 
   revalidatePath(`/admin/events/${updated.event_id}`);
@@ -673,6 +693,7 @@ export async function deleteLocation(locationId: string) {
     entityId: location.event_id,
     action: "location.deleted",
     summary: `Deleted location "${location.name}"`,
+    details: { subject_type: "location", subject_name: location.name },
   });
 
   revalidatePath(`/admin/events/${location.event_id}`);
@@ -714,6 +735,7 @@ export async function updateScheduleItemNotes(
     entityId: item.event_id,
     action: "schedule.notes_updated",
     summary: `Updated notes on "${item.title}"`,
+    details: { subject_type: "schedule", subject_name: item.title, field_names: ["notes"] },
   });
 
   revalidatePath(`/portal/events/${item.event_id}/schedule`);
@@ -753,6 +775,7 @@ export async function updateServiceNotes(
     entityId: service.event_id,
     action: "service.notes_updated",
     summary: `Updated notes on service "${service.name}"`,
+    details: { subject_type: "service", subject_name: service.name, field_names: ["notes"] },
   });
 
   revalidatePath(`/portal/events/${service.event_id}/services`);
@@ -786,6 +809,7 @@ export async function updateEventContactRoleLabel(
     entityId: eventId,
     action: "contact.role_updated",
     summary: `Updated contact role label`,
+    details: { subject_type: "contact", field_names: ["role_label"] },
   });
 
   revalidatePath(`/portal/events/${eventId}/contacts`);
@@ -812,6 +836,7 @@ export async function getLinkableAccounts(eventId: string) {
 
   if (!event) return { data: [] };
 
+  // Get already-linked participant account IDs
   const { data: linked } = await supabase
     .from("event_accounts")
     .select("account_id")
@@ -819,13 +844,18 @@ export async function getLinkableAccounts(eventId: string) {
 
   const linkedIds = new Set(linked?.map((r) => r.account_id) ?? []);
 
-  const { data: accounts } = await supabase
-    .from("accounts")
-    .select("id, name, type")
-    .eq("status", "active")
-    .neq("id", event.owner_account_id)
-    .order("name");
+  // Get curated allowlist for this owner account
+  const { data: allowlist } = await supabase
+    .from("account_linkable_accounts")
+    .select("linkable_account_id, accounts!account_linkable_accounts_linkable_account_id_fkey(id, name, type, status)")
+    .eq("owner_account_id", event.owner_account_id);
 
-  const available = (accounts || []).filter((a) => !linkedIds.has(a.id));
+  const available = (allowlist || [])
+    .map((row) => {
+      const acct = row.accounts as unknown as { id: string; name: string; type: string; status: string };
+      return acct;
+    })
+    .filter((a) => a && a.status === "active" && !linkedIds.has(a.id));
+
   return { data: available };
 }

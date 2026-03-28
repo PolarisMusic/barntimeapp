@@ -1,28 +1,46 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmVendor } from "@/lib/actions/events";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function PortalConfirmVendorButton({ serviceId }: { serviceId: string }) {
   const router = useRouter();
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function handleConfirm() {
-    if (confirm("Confirm this vendor?")) {
-      const result = await confirmVendor(serviceId);
-      if (result.error) {
-        alert(result.error);
-      } else {
-        router.refresh();
-      }
+    const result = await confirmVendor(serviceId);
+    if (result.error) {
+      toast(result.error, "error");
+    } else {
+      toast("Vendor confirmed", "success");
+      router.refresh();
     }
   }
 
   return (
-    <button
-      onClick={handleConfirm}
-      className="rounded-md border border-green-200 px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
-    >
-      Confirm Vendor
-    </button>
+    <>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirm Vendor"
+        message="Confirm this vendor for the event?"
+        confirmLabel="Confirm"
+        variant="default"
+        onConfirm={() => {
+          setConfirmOpen(false);
+          handleConfirm();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
+      <button
+        onClick={() => setConfirmOpen(true)}
+        className="rounded-md border border-green-200 px-3 py-1 text-xs font-medium text-green-700 hover:bg-green-50"
+      >
+        Confirm Vendor
+      </button>
+    </>
   );
 }

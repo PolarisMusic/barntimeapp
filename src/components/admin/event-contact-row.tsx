@@ -1,6 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { removeContactFromEvent } from "@/lib/actions/contacts";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 type EventContactRowProps = {
   assignmentId: string;
@@ -23,14 +27,29 @@ export function EventContactRow({
   roleLabel,
   visibility,
 }: EventContactRowProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   async function handleRemove() {
-    if (confirm(`Remove "${contactName}" from this event?`)) {
-      await removeContactFromEvent(eventId, assignmentId);
+    const result = await removeContactFromEvent(eventId, assignmentId);
+    if (result?.error) {
+      toast(result.error, "error");
+    } else {
+      router.refresh();
     }
   }
 
   return (
     <div className="flex items-center justify-between p-4">
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove Contact"
+        message={`Remove "${contactName}" from this event?`}
+        confirmLabel="Remove"
+        onConfirm={() => { setConfirmOpen(false); handleRemove(); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
       <div>
         <p className="text-sm font-medium">
           {contactName}
@@ -51,7 +70,7 @@ export function EventContactRow({
         </p>
       </div>
       <button
-        onClick={handleRemove}
+        onClick={() => setConfirmOpen(true)}
         className="rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
       >
         Remove
