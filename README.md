@@ -37,11 +37,13 @@ src/
 │   └── portal/                  # Client-facing portal
 │       └── events/
 │           └── [id]/
-│               ├── schedule/
-│               ├── services/
+│               ├── layout.tsx   # Shared event workspace (header + tabs)
+│               ├── schedule/    # Editable schedule notes
+│               ├── services/    # Editable service notes + vendor confirm
 │               ├── contacts/
 │               ├── locations/
-│               └── documents/
+│               ├── documents/
+│               └── updates/     # Activity feed
 ├── components/
 │   ├── ui/                      # Shared UI components
 │   ├── admin/                   # Admin-specific components
@@ -201,6 +203,8 @@ supabase db push
 # 2. supabase/migrations/00002_permission_hardening.sql
 # 3. supabase/migrations/00003_permission_model_v2.sql
 # 4. supabase/migrations/00004_unify_permission_checks.sql
+# 5. supabase/migrations/00005_visibility_aware_counts.sql
+# 6. supabase/migrations/00006_dashboard_enhancements.sql
 ```
 
 ### Storage Setup

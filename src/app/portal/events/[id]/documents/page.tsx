@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -7,9 +6,9 @@ const typeLabels: Record<string, string> = {
   site_map: "Site Map",
   run_sheet: "Run Sheet",
   vendor_packet: "Vendor Packet",
-  insurance_compliance: "Insurance/Compliance",
+  insurance_compliance: "Insurance / Compliance",
   stage_plot: "Stage Plot",
-  parking_load_in: "Parking/Load-in",
+  parking_load_in: "Parking / Load-in",
   misc: "Misc",
 };
 
@@ -30,7 +29,6 @@ export default async function DocumentsPage({
 
   if (!event) notFound();
 
-  // RLS handles document visibility (owner_only vs all_participants)
   const { data: documents } = await supabase
     .from("event_documents")
     .select("*")
@@ -38,47 +36,45 @@ export default async function DocumentsPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href={`/portal/events/${id}`}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          &larr; {event.name}
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">Documents</h1>
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white">
-        {documents && documents.length > 0 ? (
-          <div className="divide-y divide-gray-200">
-            {documents.map((d) => (
-              <div
-                key={d.id}
-                className="flex items-center justify-between p-4"
-              >
-                <div>
-                  <p className="text-sm font-medium">{d.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {typeLabels[d.document_type] || d.document_type} |{" "}
-                    {new Date(d.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <a
-                  href={`/api/documents/${d.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-md border border-blue-200 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-                >
-                  Download
-                </a>
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {documents && documents.length > 0 ? (
+        <div className="divide-y divide-gray-100">
+          {documents.map((d) => (
+            <div
+              key={d.id}
+              className="flex items-center justify-between p-4"
+            >
+              <div>
+                <p className="text-sm font-medium">{d.name}</p>
+                <p className="text-xs text-gray-500">
+                  {typeLabels[d.document_type] || d.document_type}
+                  {" · "}
+                  {new Date(d.created_at).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                  {d.visibility === "owner_only" && (
+                    <span className="ml-1.5 text-amber-500">Owner only</span>
+                  )}
+                </p>
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="p-6 text-sm text-gray-500">No documents available.</p>
-        )}
-      </div>
+              <a
+                href={`/api/documents/${d.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-blue-200 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
+              >
+                Download
+              </a>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="p-8 text-center text-sm text-gray-500">
+          No documents available for this event.
+        </p>
+      )}
     </div>
   );
 }

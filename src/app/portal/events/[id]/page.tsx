@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-import { StatusBadge } from "@/components/ui/status-badge";
 
 export default async function EventOverviewPage({
   params,
@@ -13,7 +11,6 @@ export default async function EventOverviewPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  // Use the event_summary() read model RPC
   const { data: summaryRows } = await supabase.rpc("event_summary", {
     p_event_id: id,
   });
@@ -25,135 +22,82 @@ export default async function EventOverviewPage({
     !summary.is_owner &&
     summary.participant_visibility_level === "limited";
 
-  // Build section cards — only show sections the user can actually access
-  const sections: { href: string; count: number; label: string }[] = [];
+  // Build visible section stats
+  type Stat = { label: string; count: number };
+  const stats: Stat[] = [];
 
   if (!isLimited) {
-    sections.push({
-      href: `/portal/events/${id}/schedule`,
-      count: Number(summary.schedule_item_count ?? 0),
-      label: "Schedule",
-    });
+    stats.push({ label: "Schedule Items", count: Number(summary.schedule_item_count ?? 0) });
   }
-
-  sections.push({
-    href: `/portal/events/${id}/services`,
-    count: Number(summary.service_count ?? 0),
-    label: "Services",
-  });
-
-  sections.push({
-    href: `/portal/events/${id}/documents`,
-    count: Number(summary.document_count ?? 0),
-    label: "Documents",
-  });
-
-  sections.push({
-    href: `/portal/events/${id}/contacts`,
-    count: Number(summary.contact_count ?? 0),
-    label: "Contacts",
-  });
-
+  stats.push({ label: "Services", count: Number(summary.service_count ?? 0) });
+  stats.push({ label: "Contacts", count: Number(summary.contact_count ?? 0) });
+  stats.push({ label: "Documents", count: Number(summary.document_count ?? 0) });
   if (!isLimited) {
-    sections.push({
-      href: `/portal/events/${id}/locations`,
-      count: Number(summary.location_count ?? 0),
-      label: "Locations",
-    });
+    stats.push({ label: "Locations", count: Number(summary.location_count ?? 0) });
   }
+  if (summary.is_owner) {
+    stats.push({ label: "Participants", count: Number(summary.participant_count ?? 0) });
+  }
+
+  // Collect capabilities for this user
+  const capabilities: string[] = [];
+  if (summary.can_edit) capabilities.push("Edit Event");
+  if (summary.can_manage_services) capabilities.push("Manage Services");
+  if (summary.can_manage_schedule_items) capabilities.push("Manage Schedule");
+  if (summary.can_manage_docs) capabilities.push("Manage Documents");
+  if (summary.can_manage_contacts) capabilities.push("Manage Contacts");
+  if (summary.can_confirm_vendors) capabilities.push("Confirm Vendors");
+  if (summary.can_manage_participants) capabilities.push("Manage Participants");
 
   return (
     <div className="space-y-6">
-      <div>
-        <Link
-          href="/portal/events"
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          &larr; My Events
-        </Link>
-        <div className="mt-1 flex items-center gap-3">
-          <h1 className="text-2xl font-bold">{summary.event_name}</h1>
-          <StatusBadge status={summary.event_status} />
-        </div>
-        <p className="text-sm text-gray-500">
-          {summary.owner_account_name}
-          {summary.start_date &&
-            ` | ${new Date(summary.start_date).toLocaleDateString()}`}
-          {summary.end_date &&
-            ` — ${new Date(summary.end_date).toLocaleDateString()}`}
-        </p>
-      </div>
-
       {summary.description && (
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm text-gray-700">{summary.description}</p>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        {sections.map((s) => (
-          <Link
+      {/* Section counts */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {stats.map((s) => (
+          <div
             key={s.label}
-            href={s.href}
-            className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
+            className="rounded-lg border border-gray-200 bg-white p-4"
           >
             <p className="text-2xl font-bold">{s.count}</p>
             <p className="text-sm text-gray-500">{s.label}</p>
-          </Link>
-        ))}
-        {summary.is_owner && (
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <p className="text-2xl font-bold">{summary.participant_count}</p>
-            <p className="text-sm text-gray-500">Participants</p>
           </div>
-        )}
+        ))}
       </div>
 
-      {/* Inline permission indicators for the current user */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h3 className="mb-2 text-sm font-semibold text-gray-600">
-          Your Permissions
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {summary.can_edit && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              Edit Event
-            </span>
-          )}
-          {summary.can_manage_services && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              Manage Services
-            </span>
-          )}
-          {summary.can_manage_schedule_items && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              Manage Schedule
-            </span>
-          )}
-          {summary.can_manage_docs && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              Manage Documents
-            </span>
-          )}
-          {summary.can_confirm_vendors && (
-            <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-700">
-              Confirm Vendors
-            </span>
-          )}
-          {summary.can_manage_participants && (
-            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
-              Manage Participants
-            </span>
-          )}
-          {!summary.can_edit &&
-            !summary.can_manage_services &&
-            !summary.can_confirm_vendors && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                View Only
+      {/* Capabilities (only show if the user has any) */}
+      {capabilities.length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <h3 className="mb-2 text-sm font-semibold text-gray-600">
+            Your Capabilities
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {capabilities.map((cap) => (
+              <span
+                key={cap}
+                className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700"
+              >
+                {cap}
               </span>
-            )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!summary.description && capabilities.length === 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
+          <p className="text-sm text-gray-500">
+            {summary.is_owner
+              ? "No event description yet. Add details in the event settings."
+              : "Event details will appear here as they become available."}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
@@ -20,7 +19,6 @@ export default async function ContactsPage({
 
   if (!event) notFound();
 
-  // Get event-scoped contact assignments (RLS handles visibility)
   const { data: assignments } = await supabase
     .from("event_contact_roles")
     .select(
@@ -30,51 +28,46 @@ export default async function ContactsPage({
     .order("sort_order");
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link
-          href={`/portal/events/${id}`}
-          className="text-sm text-gray-500 hover:text-gray-700"
-        >
-          &larr; {event.name}
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold">Contacts</h1>
-      </div>
-
+    <div className="rounded-lg border border-gray-200 bg-white">
       {assignments && assignments.length > 0 ? (
-        <div className="rounded-lg border border-gray-200 bg-white">
-          <div className="divide-y divide-gray-100">
-            {assignments.map((a) => {
-              const contact = a.account_contacts as unknown as {
-                name: string;
-                email: string | null;
-                phone: string | null;
-                role_label: string | null;
-                accounts: { name: string };
-              };
-              return (
-                <div key={a.id} className="p-4">
-                  <p className="text-sm font-medium">
-                    {contact?.name || "Unknown"}
-                    {a.role_label && (
-                      <span className="ml-2 text-gray-500">
-                        — {a.role_label}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {contact?.accounts?.name || ""}
-                    {contact?.email ? ` | ${contact.email}` : ""}
-                    {contact?.phone ? ` | ${contact.phone}` : ""}
-                  </p>
+        <div className="divide-y divide-gray-100">
+          {assignments.map((a) => {
+            const contact = a.account_contacts as unknown as {
+              name: string;
+              email: string | null;
+              phone: string | null;
+              role_label: string | null;
+              accounts: { name: string };
+            };
+            return (
+              <div key={a.id} className="p-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-sm font-medium">
+                      {contact?.name || "Unknown"}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {a.role_label && (
+                        <span className="font-medium text-gray-600">
+                          {a.role_label}
+                        </span>
+                      )}
+                      {a.role_label && contact?.accounts?.name && " · "}
+                      {contact?.accounts?.name || ""}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-gray-400">
+                    {contact?.email && <p>{contact.email}</p>}
+                    {contact?.phone && <p>{contact.phone}</p>}
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">
-          No contacts assigned to this event yet.
+        <p className="p-8 text-center text-sm text-gray-500">
+          No shared contacts available for this event.
         </p>
       )}
     </div>

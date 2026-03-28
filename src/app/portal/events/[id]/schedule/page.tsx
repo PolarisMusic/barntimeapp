@@ -1,17 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-
-function formatTime(iso: string | null) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import { EditableScheduleItem } from "@/components/portal/editable-schedule-item";
 
 export default async function SchedulePage({
   params,
@@ -37,34 +27,36 @@ export default async function SchedulePage({
     .order("sort_order")
     .order("start_time");
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <Link href={`/portal/events/${id}`} className="text-sm text-gray-500 hover:text-gray-700">&larr; {event.name}</Link>
-        <h1 className="mt-1 text-2xl font-bold">Schedule</h1>
-      </div>
+  const { data: canManage } = await supabase.rpc("can_manage_schedule", {
+    p_event_id: id,
+  });
 
-      <div className="rounded-lg border border-gray-200 bg-white">
-        {items && items.length > 0 ? (
-          <div className="divide-y divide-gray-200">
-            {items.map((item) => (
-              <div key={item.id} className="p-4">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="text-xs text-gray-500">
-                  {formatTime(item.start_time)} — {formatTime(item.end_time)}
-                  {(item.event_locations as unknown as { name: string })?.name &&
-                    ` @ ${(item.event_locations as unknown as { name: string }).name}`}
-                </p>
-                {item.description && (
-                  <p className="mt-1 text-xs text-gray-400">{item.description}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="p-6 text-sm text-gray-500">No schedule items yet.</p>
-        )}
-      </div>
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {items && items.length > 0 ? (
+        <div className="divide-y divide-gray-100">
+          {items.map((item) => (
+            <EditableScheduleItem
+              key={item.id}
+              item={{
+                id: item.id,
+                title: item.title,
+                start_time: item.start_time,
+                end_time: item.end_time,
+                description: item.description,
+                locationName:
+                  (item.event_locations as unknown as { name: string })?.name ||
+                  null,
+              }}
+              canEdit={canManage === true}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="p-8 text-center text-sm text-gray-500">
+          No schedule items yet.
+        </p>
+      )}
     </div>
   );
 }

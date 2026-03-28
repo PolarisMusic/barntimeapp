@@ -10,6 +10,7 @@ import {
   checkCanConfirmVendor,
   checkCanManageSchedule,
   checkCanManageDocuments,
+  checkCanManageEventContacts,
 } from "@/lib/permissions";
 import { logActivity } from "./activity-log";
 
@@ -625,5 +626,118 @@ export async function deleteLocation(locationId: string) {
 
   revalidatePath(`/admin/events/${location.event_id}`);
   revalidatePath(`/portal/events/${location.event_id}`);
+  return { data: true };
+}
+
+// --- Portal-facing lightweight note editors ---
+
+export async function updateScheduleItemNotes(
+  itemId: string,
+  description: string
+) {
+  const profile = await requireProfile();
+  const supabase = await createServiceClient();
+
+  const { data: item } = await supabase
+    .from("event_schedule_items")
+    .select("event_id, title")
+    .eq("id", itemId)
+    .single();
+
+  if (!item) return { error: "Schedule item not found" };
+
+  if (!(await checkCanManageSchedule(item.event_id))) {
+    return { error: "Permission denied" };
+  }
+
+  const { error } = await supabase
+    .from("event_schedule_items")
+    .update({ description: description || null })
+    .eq("id", itemId);
+
+  if (error) return { error: error.message };
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: item.event_id,
+    action: "schedule.notes_updated",
+    summary: `Updated notes on "${item.title}"`,
+  });
+
+  revalidatePath(`/portal/events/${item.event_id}/schedule`);
+  revalidatePath(`/admin/events/${item.event_id}`);
+  return { data: true };
+}
+
+export async function updateServiceNotes(
+  serviceId: string,
+  description: string
+) {
+  const profile = await requireProfile();
+  const supabase = await createServiceClient();
+
+  const { data: service } = await supabase
+    .from("event_services")
+    .select("event_id, name")
+    .eq("id", serviceId)
+    .single();
+
+  if (!service) return { error: "Service not found" };
+
+  if (!(await checkCanManageServices(service.event_id))) {
+    return { error: "Permission denied" };
+  }
+
+  const { error } = await supabase
+    .from("event_services")
+    .update({ description: description || null })
+    .eq("id", serviceId);
+
+  if (error) return { error: error.message };
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: service.event_id,
+    action: "service.notes_updated",
+    summary: `Updated notes on service "${service.name}"`,
+  });
+
+  revalidatePath(`/portal/events/${service.event_id}/services`);
+  revalidatePath(`/admin/events/${service.event_id}`);
+  return { data: true };
+}
+
+export async function updateEventContactRoleLabel(
+  assignmentId: string,
+  eventId: string,
+  roleLabel: string
+) {
+  const profile = await requireProfile();
+
+  if (!(await checkCanManageEventContacts(eventId))) {
+    return { error: "Permission denied" };
+  }
+
+  const supabase = await createServiceClient();
+
+  const { error } = await supabase
+    .from("event_contact_roles")
+    .update({ role_label: roleLabel || null })
+    .eq("id", assignmentId);
+
+  if (error) return { error: error.message };
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: eventId,
+    action: "contact.role_updated",
+    summary: `Updated contact role label`,
+  });
+
+  revalidatePath(`/portal/events/${eventId}/contacts`);
+  revalidatePath(`/admin/events/${eventId}`);
   return { data: true };
 }
