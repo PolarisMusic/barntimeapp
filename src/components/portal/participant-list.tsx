@@ -73,7 +73,9 @@ export function PortalParticipantList({
       ) : (
         <div className="p-8 text-center">
           <p className="text-sm text-gray-500">
-            No participant accounts linked yet. Use the button below to add participants.
+            {availableAccounts.length > 0
+              ? "No participant accounts linked yet. Use the button below to add participants."
+              : "No participant accounts linked yet."}
           </p>
         </div>
       )}
@@ -164,66 +166,86 @@ function ParticipantItem({
   const router = useRouter();
   const [updating, setUpdating] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleUnlink() {
     if (!confirm(`Remove "${participant.accountName}" from this event?`)) return;
     setUpdating(true);
-    await unlinkParticipantAccount(eventId, participant.accountId);
-    setRemoved(true);
-    router.refresh();
+    setError(null);
+    const result = await unlinkParticipantAccount(eventId, participant.accountId);
+    if (result.error) {
+      setError(result.error);
+      setUpdating(false);
+    } else {
+      setRemoved(true);
+      router.refresh();
+    }
   }
 
   async function handleVisibilityChange(newVis: string) {
     setUpdating(true);
-    await updateParticipant(eventId, participant.accountId, { visibility: newVis });
+    setError(null);
+    const result = await updateParticipant(eventId, participant.accountId, { visibility: newVis });
     setUpdating(false);
-    router.refresh();
+    if (result.error) {
+      setError(result.error);
+    } else {
+      router.refresh();
+    }
   }
 
   async function handleRoleLabelBlur(e: React.FocusEvent<HTMLInputElement>) {
     const newLabel = e.target.value;
     if (newLabel !== (participant.roleLabel || "")) {
       setUpdating(true);
-      await updateParticipant(eventId, participant.accountId, { role_label: newLabel });
+      setError(null);
+      const result = await updateParticipant(eventId, participant.accountId, { role_label: newLabel });
       setUpdating(false);
-      router.refresh();
+      if (result.error) {
+        setError(result.error);
+      } else {
+        router.refresh();
+      }
     }
   }
 
   if (removed) return null;
 
   return (
-    <div className="flex items-center justify-between p-4">
-      <div className="flex items-center gap-4">
-        <div>
-          <p className="text-sm font-medium">{participant.accountName}</p>
-          <p className="text-xs text-gray-500">{participant.accountType}</p>
+    <div className="p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-sm font-medium">{participant.accountName}</p>
+            <p className="text-xs text-gray-500">{participant.accountType}</p>
+          </div>
+          <input
+            type="text"
+            defaultValue={participant.roleLabel || ""}
+            placeholder="Role label"
+            onBlur={handleRoleLabelBlur}
+            disabled={updating}
+            className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
+          />
+          <select
+            value={participant.visibility}
+            onChange={(e) => handleVisibilityChange(e.target.value)}
+            disabled={updating}
+            className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
+          >
+            <option value="limited">Limited</option>
+            <option value="standard">Standard</option>
+          </select>
         </div>
-        <input
-          type="text"
-          defaultValue={participant.roleLabel || ""}
-          placeholder="Role label"
-          onBlur={handleRoleLabelBlur}
+        <button
+          onClick={handleUnlink}
           disabled={updating}
-          className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
-        />
-        <select
-          value={participant.visibility}
-          onChange={(e) => handleVisibilityChange(e.target.value)}
-          disabled={updating}
-          className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
+          className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
         >
-          <option value="limited">Limited</option>
-          <option value="standard">Standard</option>
-        </select>
+          Remove
+        </button>
       </div>
-      <button
-        onClick={handleUnlink}
-        disabled={updating}
-        className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
-      >
-        Remove
-      </button>
+      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
   );
 }

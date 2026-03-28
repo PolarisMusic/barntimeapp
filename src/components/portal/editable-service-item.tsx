@@ -31,7 +31,7 @@ export function EditableServiceItem({
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={service.status} />
-          {canConfirm && service.status === "pending" && (
+          {canConfirm && service.status === "pending" && service.accountName && (
             <PortalConfirmVendorButton serviceId={service.id} />
           )}
         </div>
