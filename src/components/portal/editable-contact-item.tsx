@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { updateEventContactRoleLabel } from "@/lib/actions/events";
-import { removeContactFromEvent } from "@/lib/actions/contacts";
+import { removeContactFromEvent, updateContactVisibility } from "@/lib/actions/contacts";
 import { InlineEditField } from "./inline-edit-field";
 
 export function EditableContactItem({
@@ -25,8 +26,10 @@ export function EditableContactItem({
   eventId: string;
   canManage: boolean;
 }) {
+  const router = useRouter();
   const [removing, setRemoving] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [visUpdating, setVisUpdating] = useState(false);
 
   async function handleRemove() {
     if (!confirm(`Remove ${assignment.contact.name} from this event?`)) return;
@@ -37,6 +40,18 @@ export function EditableContactItem({
       setRemoving(false);
     } else {
       setRemoved(true);
+      router.refresh();
+    }
+  }
+
+  async function handleVisibilityChange(newVisibility: string) {
+    setVisUpdating(true);
+    const result = await updateContactVisibility(assignment.id, eventId, newVisibility);
+    setVisUpdating(false);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      router.refresh();
     }
   }
 
@@ -74,19 +89,24 @@ export function EditableContactItem({
               </p>
             )}
           </div>
-          {!canManage && (
-            <p className="text-xs text-gray-400">
-              {assignment.contact.accountName}
-            </p>
-          )}
-          {canManage && (
-            <p className="mt-0.5 text-xs text-gray-400">
-              {assignment.contact.accountName}
-              {assignment.visibility === "owner_only" && (
-                <span className="ml-1.5 text-amber-500">Owner only</span>
-              )}
-            </p>
-          )}
+          <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-400">
+            <span>{assignment.contact.accountName}</span>
+            {canManage ? (
+              <select
+                value={assignment.visibility}
+                onChange={(e) => handleVisibilityChange(e.target.value)}
+                disabled={visUpdating}
+                className="rounded border border-gray-200 px-1.5 py-0.5 text-xs text-gray-500 disabled:opacity-50"
+              >
+                <option value="owner_only">Owner only</option>
+                <option value="all_participants">All participants</option>
+              </select>
+            ) : (
+              assignment.visibility === "owner_only" && (
+                <span className="text-amber-500">Owner only</span>
+              )
+            )}
+          </div>
         </div>
         <div className="ml-4 flex items-start gap-3">
           <div className="text-right text-xs text-gray-400">

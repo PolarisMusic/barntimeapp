@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export function InlineEditField({
   value,
@@ -13,6 +14,7 @@ export function InlineEditField({
   placeholder?: string;
   multiline?: boolean;
 }) {
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const [saving, setSaving] = useState(false);
@@ -47,6 +49,7 @@ export function InlineEditField({
     } else {
       setEditing(false);
       setSaved(true);
+      router.refresh();
     }
   }
 

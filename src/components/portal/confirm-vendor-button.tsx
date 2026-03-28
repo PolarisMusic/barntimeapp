@@ -1,13 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { confirmVendor } from "@/lib/actions/events";
 
 export function PortalConfirmVendorButton({ serviceId }: { serviceId: string }) {
+  const router = useRouter();
+
   async function handleConfirm() {
     if (confirm("Confirm this vendor?")) {
       const result = await confirmVendor(serviceId);
       if (result.error) {
         alert(result.error);
+      } else {
+        router.refresh();
       }
     }
   }

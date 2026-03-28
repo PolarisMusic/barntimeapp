@@ -186,6 +186,41 @@ export async function assignContactToEvent(formData: FormData) {
   return { data: assignment };
 }
 
+export async function updateContactVisibility(
+  contactRoleId: string,
+  eventId: string,
+  visibility: string
+) {
+  const profile = await requireProfile();
+
+  if (!(await checkCanManageEventContacts(eventId))) {
+    return { error: "Permission denied: cannot manage contacts for this event" };
+  }
+
+  const validVisibility = visibility === "all_participants" ? "all_participants" : "owner_only";
+
+  const supabase = await createServiceClient();
+
+  const { error } = await supabase
+    .from("event_contact_roles")
+    .update({ visibility: validVisibility })
+    .eq("id", contactRoleId);
+
+  if (error) return { error: error.message };
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: eventId,
+    action: "contact.role_updated",
+    summary: `Changed contact visibility to ${validVisibility}`,
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/portal/events/${eventId}`);
+  return { data: true };
+}
+
 export async function removeContactFromEvent(eventId: string, contactRoleId: string) {
   const profile = await requireProfile();
 

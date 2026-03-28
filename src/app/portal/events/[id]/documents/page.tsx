@@ -40,6 +40,7 @@ export default async function DocumentsPage({
                 name: d.name,
                 document_type: d.document_type,
                 visibility: d.visibility,
+                notes: d.notes,
                 created_at: d.created_at,
               }}
               canManage={canManageDocs}

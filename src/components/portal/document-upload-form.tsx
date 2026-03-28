@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { uploadDocument } from "@/lib/actions/documents";
 
 const documentTypes = [
@@ -14,6 +15,7 @@ const documentTypes = [
 ];
 
 export function DocumentUploadForm({ eventId }: { eventId: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function DocumentUploadForm({ eventId }: { eventId: string }) {
     } else {
       formRef.current.reset();
       setOpen(false);
+      router.refresh();
     }
   }
 

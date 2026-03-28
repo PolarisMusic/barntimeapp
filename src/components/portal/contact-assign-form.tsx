@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { assignContactToEvent } from "@/lib/actions/contacts";
 
 export function ContactAssignForm({
@@ -10,6 +11,7 @@ export function ContactAssignForm({
   eventId: string;
   availableContacts: { id: string; name: string; role_label: string | null }[];
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
   const [roleLabel, setRoleLabel] = useState("");
@@ -40,6 +42,7 @@ export function ContactAssignForm({
       setRoleLabel("");
       setVisibility("owner_only");
       setOpen(false);
+      router.refresh();
     }
   }
 

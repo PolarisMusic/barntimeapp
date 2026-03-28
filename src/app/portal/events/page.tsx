@@ -29,26 +29,17 @@ export default async function MyEventsPage() {
 
   const { data: events } = await supabase.rpc("my_events_dashboard");
 
-  // Deduplicate by event_id
-  const seen = new Set<string>();
-  const uniqueEvents = (events || []).filter(
-    (e: { event_id: string }) => {
-      if (seen.has(e.event_id)) return false;
-      seen.add(e.event_id);
-      return true;
-    }
-  );
+  const allEvents = (events || []) as DashboardEvent[];
 
   // Group: active/draft first, then finalized, then archived
-  const active = uniqueEvents.filter(
-    (e: { event_status: string }) =>
-      e.event_status === "active" || e.event_status === "draft"
+  const active = allEvents.filter(
+    (e) => e.event_status === "active" || e.event_status === "draft"
   );
-  const finalized = uniqueEvents.filter(
-    (e: { event_status: string }) => e.event_status === "finalized"
+  const finalized = allEvents.filter(
+    (e) => e.event_status === "finalized"
   );
-  const archived = uniqueEvents.filter(
-    (e: { event_status: string }) => e.event_status === "archived"
+  const archived = allEvents.filter(
+    (e) => e.event_status === "archived"
   );
 
   const isStaff =
@@ -69,7 +60,7 @@ export default async function MyEventsPage() {
         )}
       </div>
 
-      {uniqueEvents.length === 0 ? (
+      {allEvents.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
           <p className="text-gray-500">No events available.</p>
           <p className="mt-1 text-sm text-gray-400">
