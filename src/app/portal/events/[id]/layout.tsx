@@ -98,6 +98,14 @@ export default async function EventLayout({
     });
   }
 
+  if (summary.can_manage_participants) {
+    tabs.push({
+      href: `/portal/events/${id}/participants`,
+      label: "Participants",
+      count: Number(summary.participant_count ?? 0),
+    });
+  }
+
   tabs.push({
     href: `/portal/events/${id}/updates`,
     label: "Updates",

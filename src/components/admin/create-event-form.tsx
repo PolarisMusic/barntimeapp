@@ -49,6 +49,11 @@ export function CreateEventForm({ accounts }: { accounts: Account[] }) {
       </div>
 
       <div>
+        <label htmlFor="timezone" className="mb-1 block text-sm font-medium">Timezone</label>
+        <input id="timezone" name="timezone" type="text" defaultValue="America/Los_Angeles" placeholder="e.g. America/New_York" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+      </div>
+
+      <div>
         <label htmlFor="description" className="mb-1 block text-sm font-medium">Description</label>
         <textarea id="description" name="description" rows={3} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
       </div>

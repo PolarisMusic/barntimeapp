@@ -27,6 +27,23 @@ const actionLabels: Record<string, string> = {
   "contact.role_updated": "Contact role updated",
 };
 
+// Actions only visible to owner-account members and staff
+const ownerOnlyActions = new Set([
+  "participant.linked",
+  "participant.unlinked",
+]);
+
+// Actions hidden from limited participants (schedule + location)
+const standardOnlyActions = new Set([
+  "schedule.item_created",
+  "schedule.item_updated",
+  "schedule.item_deleted",
+  "schedule.notes_updated",
+  "location.created",
+  "location.updated",
+  "location.deleted",
+]);
+
 function timeAgo(date: string) {
   const seconds = Math.floor(
     (Date.now() - new Date(date).getTime()) / 1000
@@ -53,13 +70,15 @@ export default async function UpdatesPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, name")
-    .eq("id", id)
-    .single();
+  const { data: summaryRows } = await supabase.rpc("event_summary", {
+    p_event_id: id,
+  });
+  const summary = summaryRows?.[0];
+  if (!summary) notFound();
 
-  if (!event) notFound();
+  const isOwner = summary.is_owner === true;
+  const isLimited =
+    !isOwner && summary.participant_visibility_level === "limited";
 
   // Fetch recent activity for this event
   const { data: activities } = await supabase
@@ -68,13 +87,47 @@ export default async function UpdatesPage({
     .eq("entity_type", "event")
     .eq("entity_id", id)
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(100);
+
+  // Filter activities based on user's visibility level
+  const visibleActivities = (activities || []).filter((a) => {
+    // Owner-only actions: participant management
+    if (ownerOnlyActions.has(a.action) && !isOwner) return false;
+    // Standard-only actions: schedule and location changes hidden from limited
+    if (standardOnlyActions.has(a.action) && isLimited) return false;
+    // Document/contact actions: strip summary details for non-owners
+    // but still show the action occurred (RLS already hides the data)
+    return true;
+  });
+
+  // For non-owner users, redact specific names from summaries
+  // to prevent information leakage about owner-only items
+  const sanitizedActivities = visibleActivities.slice(0, 50).map((a) => {
+    let displaySummary = a.summary;
+    if (!isOwner) {
+      // Redact document names from doc actions (may be owner-only docs)
+      if (
+        a.action.startsWith("document.") &&
+        displaySummary
+      ) {
+        displaySummary = null;
+      }
+      // Redact contact names from contact actions (may be owner-only contacts)
+      if (
+        a.action.startsWith("contact.") &&
+        displaySummary
+      ) {
+        displaySummary = null;
+      }
+    }
+    return { ...a, summary: displaySummary };
+  });
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
-      {activities && activities.length > 0 ? (
+      {sanitizedActivities.length > 0 ? (
         <div className="divide-y divide-gray-100">
-          {activities.map((a) => {
+          {sanitizedActivities.map((a) => {
             const actor = a.profiles as unknown as {
               full_name: string | null;
               email: string;

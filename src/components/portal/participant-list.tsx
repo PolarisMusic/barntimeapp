@@ -1,0 +1,214 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  linkParticipantAccount,
+  unlinkParticipantAccount,
+  updateParticipant,
+} from "@/lib/actions/events";
+
+type Participant = {
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  roleLabel: string | null;
+  visibility: string;
+};
+
+type Account = { id: string; name: string; type: string };
+
+export function PortalParticipantList({
+  eventId,
+  participants,
+  availableAccounts,
+}: {
+  eventId: string;
+  participants: Participant[];
+  availableAccounts: Account[];
+}) {
+  const router = useRouter();
+  const [showAdd, setShowAdd] = useState(false);
+  const [addAccountId, setAddAccountId] = useState("");
+  const [addRoleLabel, setAddRoleLabel] = useState("");
+  const [addVisibility, setAddVisibility] = useState("limited");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!addAccountId) return;
+    setSubmitting(true);
+    setError(null);
+    const fd = new FormData();
+    fd.set("event_id", eventId);
+    fd.set("account_id", addAccountId);
+    fd.set("role_label", addRoleLabel);
+    fd.set("visibility", addVisibility);
+    const result = await linkParticipantAccount(fd);
+    setSubmitting(false);
+    if (result.error) {
+      setError(result.error);
+    } else {
+      setShowAdd(false);
+      setAddAccountId("");
+      setAddRoleLabel("");
+      setAddVisibility("limited");
+      router.refresh();
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white">
+      {participants.length > 0 ? (
+        <div className="divide-y divide-gray-100">
+          {participants.map((p) => (
+            <ParticipantItem
+              key={p.accountId}
+              eventId={eventId}
+              participant={p}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            No participant accounts linked yet. Use the button below to add participants.
+          </p>
+        </div>
+      )}
+
+      {showAdd ? (
+        <form onSubmit={handleAdd} className="border-t border-gray-200 px-4 py-4">
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Account</label>
+              <select
+                value={addAccountId}
+                onChange={(e) => setAddAccountId(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                <option value="">Select account...</option>
+                {availableAccounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name} ({a.type})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Role Label</label>
+                <input
+                  type="text"
+                  value={addRoleLabel}
+                  onChange={(e) => setAddRoleLabel(e.target.value)}
+                  placeholder="e.g. Sound Vendor"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Visibility</label>
+                <select
+                  value={addVisibility}
+                  onChange={(e) => setAddVisibility(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="limited">Limited</option>
+                  <option value="standard">Standard</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={submitting || !addAccountId}
+                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {submitting ? "Adding..." : "Add Participant"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAdd(false); setError(null); }}
+                className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100"
+              >
+                Cancel
+              </button>
+              {error && <span className="text-xs text-red-600">{error}</span>}
+            </div>
+          </div>
+        </form>
+      ) : (
+        availableAccounts.length > 0 && (
+          <div className="px-4 py-3">
+            <button
+              onClick={() => setShowAdd(true)}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+            >
+              Add Participant
+            </button>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function ParticipantItem({
+  eventId,
+  participant,
+}: {
+  eventId: string;
+  participant: Participant;
+}) {
+  const router = useRouter();
+  const [updating, setUpdating] = useState(false);
+  const [removed, setRemoved] = useState(false);
+
+  async function handleUnlink() {
+    if (!confirm(`Remove "${participant.accountName}" from this event?`)) return;
+    setUpdating(true);
+    await unlinkParticipantAccount(eventId, participant.accountId);
+    setRemoved(true);
+    router.refresh();
+  }
+
+  async function handleVisibilityChange(newVis: string) {
+    setUpdating(true);
+    await updateParticipant(eventId, participant.accountId, { visibility: newVis });
+    setUpdating(false);
+    router.refresh();
+  }
+
+  if (removed) return null;
+
+  return (
+    <div className="flex items-center justify-between p-4">
+      <div className="flex items-center gap-4">
+        <div>
+          <p className="text-sm font-medium">{participant.accountName}</p>
+          <p className="text-xs text-gray-500">
+            {participant.accountType}
+            {participant.roleLabel && ` — ${participant.roleLabel}`}
+          </p>
+        </div>
+        <select
+          value={participant.visibility}
+          onChange={(e) => handleVisibilityChange(e.target.value)}
+          disabled={updating}
+          className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
+        >
+          <option value="limited">Limited</option>
+          <option value="standard">Standard</option>
+        </select>
+      </div>
+      <button
+        onClick={handleUnlink}
+        disabled={updating}
+        className="rounded-md px-2 py-1 text-xs text-red-500 hover:bg-red-50 disabled:opacity-50"
+      >
+        Remove
+      </button>
+    </div>
+  );
+}

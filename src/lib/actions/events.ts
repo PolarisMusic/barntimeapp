@@ -25,6 +25,7 @@ export async function createEvent(formData: FormData) {
   const startDate = formData.get("start_date") as string;
   const endDate = formData.get("end_date") as string;
   const description = formData.get("description") as string;
+  const timezone = formData.get("timezone") as string;
 
   if (!name?.trim()) return { error: "Event name is required" };
   if (!ownerAccountId) return { error: "Owner account is required" };
@@ -37,6 +38,7 @@ export async function createEvent(formData: FormData) {
       start_date: startDate || null,
       end_date: endDate || null,
       description: description || null,
+      timezone: timezone || "America/Los_Angeles",
     })
     .select()
     .single();
@@ -70,6 +72,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const endDate = formData.get("end_date") as string;
   const description = formData.get("description") as string;
   const notes = formData.get("notes") as string;
+  const timezone = formData.get("timezone") as string;
 
   const { data: event, error } = await supabase
     .from("events")
@@ -80,6 +83,7 @@ export async function updateEvent(eventId: string, formData: FormData) {
       end_date: endDate || null,
       description: description || null,
       notes: notes || null,
+      timezone: timezone || undefined,
     })
     .eq("id", eventId)
     .select()
@@ -108,6 +112,7 @@ export async function linkParticipantAccount(formData: FormData) {
   const eventId = formData.get("event_id") as string;
   const accountId = formData.get("account_id") as string;
   const roleLabel = formData.get("role_label") as string;
+  const visibility = formData.get("visibility") as string;
 
   if (!eventId || !accountId)
     return { error: "Event and account are required" };
@@ -131,10 +136,13 @@ export async function linkParticipantAccount(formData: FormData) {
     return { error: "Cannot link the owner account as a participant" };
   }
 
+  const validVisibility = visibility === "standard" ? "standard" : "limited";
+
   const { error } = await supabase.from("event_accounts").insert({
     event_id: eventId,
     account_id: accountId,
     role_label: roleLabel || null,
+    visibility: validVisibility,
   });
 
   if (error) {
@@ -149,7 +157,50 @@ export async function linkParticipantAccount(formData: FormData) {
     entityId: eventId,
     action: "participant.linked",
     summary: `Linked participant account to event "${event.name}"`,
-    metadata: { accountId, roleLabel },
+    metadata: { accountId, roleLabel, visibility: validVisibility },
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/portal/events/${eventId}`);
+  return { data: true };
+}
+
+export async function updateParticipant(
+  eventId: string,
+  accountId: string,
+  updates: { role_label?: string; visibility?: string }
+) {
+  const profile = await requireProfile();
+
+  if (!(await checkCanManageEventParticipants(eventId))) {
+    return { error: "Permission denied: cannot manage participants for this event" };
+  }
+
+  const supabase = await createServiceClient();
+
+  const updateData: Record<string, unknown> = {};
+  if (updates.role_label !== undefined) {
+    updateData.role_label = updates.role_label || null;
+  }
+  if (updates.visibility !== undefined) {
+    updateData.visibility = updates.visibility === "standard" ? "standard" : "limited";
+  }
+
+  const { error } = await supabase
+    .from("event_accounts")
+    .update(updateData)
+    .eq("event_id", eventId)
+    .eq("account_id", accountId);
+
+  if (error) return { error: error.message };
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: eventId,
+    action: "participant.linked",
+    summary: `Updated participant settings`,
+    metadata: { accountId, ...updates },
   });
 
   revalidatePath(`/admin/events/${eventId}`);

@@ -1,5 +1,5 @@
 // This file will be replaced by generated types from Supabase CLI.
-// For now, provide a minimal type placeholder.
+// For now, provide a minimal type placeholder that tracks the actual schema.
 export type Database = {
   public: {
     Tables: {
@@ -28,7 +28,7 @@ export type Database = {
         Row: {
           id: string;
           name: string;
-          type: "client" | "vendor" | "venue" | "internal";
+          type: "client" | "vendor" | "venue" | "internal" | "performer";
           status: "active" | "inactive" | "archived";
           notes: string | null;
           created_at: string;
@@ -36,13 +36,13 @@ export type Database = {
         };
         Insert: {
           name: string;
-          type?: "client" | "vendor" | "venue" | "internal";
+          type?: "client" | "vendor" | "venue" | "internal" | "performer";
           status?: "active" | "inactive" | "archived";
           notes?: string | null;
         };
         Update: {
           name?: string;
-          type?: "client" | "vendor" | "venue" | "internal";
+          type?: "client" | "vendor" | "venue" | "internal" | "performer";
           status?: "active" | "inactive" | "archived";
           notes?: string | null;
         };
@@ -118,6 +118,7 @@ export type Database = {
           end_date: string | null;
           description: string | null;
           notes: string | null;
+          timezone: string;
           created_at: string;
           updated_at: string;
         };
@@ -129,6 +130,7 @@ export type Database = {
           end_date?: string | null;
           description?: string | null;
           notes?: string | null;
+          timezone?: string;
         };
         Update: {
           name?: string;
@@ -137,6 +139,7 @@ export type Database = {
           end_date?: string | null;
           description?: string | null;
           notes?: string | null;
+          timezone?: string;
         };
       };
       event_accounts: {
@@ -165,6 +168,8 @@ export type Database = {
           event_id: string;
           name: string;
           address: string | null;
+          location_type: string | null;
+          map_url: string | null;
           notes: string | null;
           created_at: string;
           updated_at: string;
@@ -173,11 +178,15 @@ export type Database = {
           event_id: string;
           name: string;
           address?: string | null;
+          location_type?: string | null;
+          map_url?: string | null;
           notes?: string | null;
         };
         Update: {
           name?: string;
           address?: string | null;
+          location_type?: string | null;
+          map_url?: string | null;
           notes?: string | null;
         };
       };
@@ -275,6 +284,29 @@ export type Database = {
           notes?: string | null;
         };
       };
+      event_contact_roles: {
+        Row: {
+          id: string;
+          event_id: string;
+          contact_id: string;
+          role_label: string | null;
+          visibility: "owner_only" | "all_participants";
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          event_id: string;
+          contact_id: string;
+          role_label?: string | null;
+          visibility?: "owner_only" | "all_participants";
+          sort_order?: number;
+        };
+        Update: {
+          role_label?: string | null;
+          visibility?: "owner_only" | "all_participants";
+          sort_order?: number;
+        };
+      };
       activity_log: {
         Row: {
           id: string;
@@ -308,6 +340,8 @@ export type Database = {
       service_status: "pending" | "confirmed" | "cancelled";
       document_type: "site_map" | "run_sheet" | "vendor_packet" | "insurance_compliance" | "stage_plot" | "parking_load_in" | "misc";
       document_visibility: "owner_only" | "all_participants";
+      contact_visibility: "owner_only" | "all_participants";
+      participant_visibility: "limited" | "standard";
     };
   };
 };

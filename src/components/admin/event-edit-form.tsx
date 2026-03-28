@@ -12,6 +12,7 @@ type Event = {
   end_date: string | null;
   description: string | null;
   notes: string | null;
+  timezone: string | null;
 };
 
 export function EventEditForm({ event }: { event: Event }) {
@@ -58,6 +59,11 @@ export function EventEditForm({ event }: { event: Event }) {
           <label htmlFor="end_date" className="mb-1 block text-sm font-medium">End Date</label>
           <input id="end_date" name="end_date" type="date" defaultValue={event.end_date || ""} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="timezone" className="mb-1 block text-sm font-medium">Timezone</label>
+        <input id="timezone" name="timezone" type="text" defaultValue={event.timezone || "America/Los_Angeles"} placeholder="e.g. America/New_York" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
       </div>
 
       <div>
