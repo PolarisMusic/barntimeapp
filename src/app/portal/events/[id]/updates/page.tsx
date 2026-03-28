@@ -7,6 +7,7 @@ const actionLabels: Record<string, string> = {
   "event.updated": "Event updated",
   "participant.linked": "Participant added",
   "participant.unlinked": "Participant removed",
+  "participant.updated": "Participant updated",
   "service.created": "Service added",
   "service.updated": "Service updated",
   "service.deleted": "Service removed",
@@ -25,18 +26,30 @@ const actionLabels: Record<string, string> = {
   "contact.assigned": "Contact assigned",
   "contact.unassigned": "Contact removed",
   "contact.role_updated": "Contact role updated",
-  "participant.updated": "Participant updated",
 };
 
-// Actions only visible to owner-account members and staff
-const ownerOnlyActions = new Set([
+// Actions visible to everyone who can view the event
+const universalActions = new Set([
+  "event.created",
+  "event.updated",
+]);
+
+// Actions visible to owner-account members only
+const ownerActions = new Set([
   "participant.linked",
   "participant.unlinked",
   "participant.updated",
-]);
-
-// Actions hidden from limited participants (schedule + location)
-const standardOnlyActions = new Set([
+  "document.uploaded",
+  "document.updated",
+  "document.deleted",
+  "contact.assigned",
+  "contact.unassigned",
+  "contact.role_updated",
+  "service.created",
+  "service.updated",
+  "service.deleted",
+  "service.notes_updated",
+  "vendor.confirmed",
   "schedule.item_created",
   "schedule.item_updated",
   "schedule.item_deleted",
@@ -45,6 +58,26 @@ const standardOnlyActions = new Set([
   "location.updated",
   "location.deleted",
 ]);
+
+// Actions visible to standard (non-limited) participants
+const standardParticipantActions = new Set([
+  "service.created",
+  "service.updated",
+  "service.deleted",
+  "service.notes_updated",
+  "vendor.confirmed",
+  "schedule.item_created",
+  "schedule.item_updated",
+  "schedule.item_deleted",
+  "schedule.notes_updated",
+  "location.created",
+  "location.updated",
+  "location.deleted",
+]);
+
+// Actions visible to limited participants (only event-level changes)
+// Limited participants see: universalActions only
+// (They can't see schedule, locations, most services, owner-only docs/contacts)
 
 function timeAgo(date: string) {
   const seconds = Math.floor(
@@ -81,6 +114,7 @@ export default async function UpdatesPage({
   const isOwner = summary.is_owner === true;
   const isLimited =
     !isOwner && summary.participant_visibility_level === "limited";
+  const isStandard = !isOwner && !isLimited;
 
   // Fetch recent activity for this event
   const { data: activities } = await supabase
@@ -91,47 +125,27 @@ export default async function UpdatesPage({
     .order("created_at", { ascending: false })
     .limit(100);
 
-  // Filter activities based on user's visibility level
-  const visibleActivities = (activities || []).filter((a) => {
-    // Owner-only actions: participant management
-    if (ownerOnlyActions.has(a.action) && !isOwner) return false;
-    // Standard-only actions: schedule and location changes hidden from limited
-    if (standardOnlyActions.has(a.action) && isLimited) return false;
-    // Document/contact actions: strip summary details for non-owners
-    // but still show the action occurred (RLS already hides the data)
-    return true;
-  });
+  // Build the allowed action set based on role
+  // Owner sees everything. Standard participants see universal + standard.
+  // Limited participants see only universal actions.
+  const allowedActions = new Set(universalActions);
+  if (isOwner) {
+    for (const a of ownerActions) allowedActions.add(a);
+  } else if (isStandard) {
+    for (const a of standardParticipantActions) allowedActions.add(a);
+  }
+  // Limited: only universalActions (already in the set)
 
-  // Redact specific names from summaries to prevent information leakage
-  const sanitizedActivities = visibleActivities.slice(0, 50).map((a) => {
-    let displaySummary = a.summary;
-    if (!isOwner) {
-      // Redact document names (may reference owner-only docs)
-      if (a.action.startsWith("document.") && displaySummary) {
-        displaySummary = null;
-      }
-      // Redact contact names (may reference owner-only contacts)
-      if (a.action.startsWith("contact.") && displaySummary) {
-        displaySummary = null;
-      }
-    }
-    if (isLimited) {
-      // Redact service details (limited participants only see own-account services)
-      if (a.action.startsWith("service.") && displaySummary) {
-        displaySummary = null;
-      }
-      if (a.action === "vendor.confirmed" && displaySummary) {
-        displaySummary = null;
-      }
-    }
-    return { ...a, summary: displaySummary };
-  });
+  // Filter to only allowed actions, then take first 50
+  const visibleActivities = (activities || [])
+    .filter((a) => allowedActions.has(a.action))
+    .slice(0, 50);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
-      {sanitizedActivities.length > 0 ? (
+      {visibleActivities.length > 0 ? (
         <div className="divide-y divide-gray-100">
-          {sanitizedActivities.map((a) => {
+          {visibleActivities.map((a) => {
             const actor = a.profiles as unknown as {
               full_name: string | null;
               email: string;
@@ -167,7 +181,9 @@ export default async function UpdatesPage({
       ) : (
         <div className="p-8 text-center">
           <p className="text-sm text-gray-500">
-            No updates yet. Activity will appear here as changes are made to this event.
+            {isOwner
+              ? "No updates yet. Activity will appear here as changes are made to this event."
+              : "No updates available yet. Activity relevant to your role will appear here."}
           </p>
         </div>
       )}

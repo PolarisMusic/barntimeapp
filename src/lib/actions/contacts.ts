@@ -140,6 +140,67 @@ export async function deleteContact(contactId: string) {
   return { data: true };
 }
 
+// --- Assignable contacts for event contact picker ---
+
+/**
+ * Returns contacts from the owner account AND all participant accounts
+ * that are not already assigned to this event.
+ * Uses service client to bypass RLS (caller must have manage_contacts permission).
+ */
+export async function getAssignableContacts(eventId: string) {
+  await requireProfile();
+
+  if (!(await checkCanManageEventContacts(eventId))) {
+    return [];
+  }
+
+  const supabase = await createServiceClient();
+
+  // Get event owner account
+  const { data: event } = await supabase
+    .from("events")
+    .select("owner_account_id")
+    .eq("id", eventId)
+    .single();
+
+  if (!event) return [];
+
+  // Get participant account IDs
+  const { data: participants } = await supabase
+    .from("event_accounts")
+    .select("account_id")
+    .eq("event_id", eventId);
+
+  const accountIds = [
+    event.owner_account_id,
+    ...(participants || []).map((p) => p.account_id),
+  ];
+
+  // Get already-assigned contact IDs
+  const { data: assigned } = await supabase
+    .from("event_contact_roles")
+    .select("contact_id")
+    .eq("event_id", eventId);
+
+  const assignedIds = new Set((assigned || []).map((a) => a.contact_id));
+
+  // Fetch all contacts from these accounts
+  const { data: contacts } = await supabase
+    .from("account_contacts")
+    .select("id, name, role_label, account_id, accounts(name)")
+    .in("account_id", accountIds)
+    .order("name");
+
+  return (contacts || [])
+    .filter((c) => !assignedIds.has(c.id))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      role_label: c.role_label,
+      accountName: (c.accounts as unknown as { name: string })?.name || "",
+    }));
+}
+
 // --- Event Contact Roles (event-scoped contact assignments) ---
 
 export async function assignContactToEvent(formData: FormData) {

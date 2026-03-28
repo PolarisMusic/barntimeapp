@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
+import { getAssignableContacts } from "@/lib/actions/contacts";
 import { EditableContactItem } from "@/components/portal/editable-contact-item";
 import { ContactAssignForm } from "@/components/portal/contact-assign-form";
 
@@ -9,7 +10,7 @@ export default async function ContactsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const profile = await requireProfile();
+  await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
 
@@ -30,25 +31,11 @@ export default async function ContactsPage({
     .eq("event_id", id)
     .order("sort_order");
 
-  // For owner-account users with manage permission, fetch unassigned contacts
-  // from their account directory for the assign form
-  let availableContacts: { id: string; name: string; role_label: string | null }[] = [];
-  if (canManageContacts && isOwner) {
-    const assignedContactIds = (assignments || []).map((a) => {
-      const contact = a.account_contacts as unknown as { id: string };
-      return contact?.id;
-    }).filter(Boolean);
-
-    const { data: allContacts } = await supabase
-      .from("account_contacts")
-      .select("id, name, role_label")
-      .eq("account_id", summary.owner_account_id)
-      .order("name");
-
-    availableContacts = (allContacts || []).filter(
-      (c) => !assignedContactIds.includes(c.id)
-    );
-  }
+  // For users with manage permission, fetch unassigned contacts
+  // from owner + participant account directories
+  const availableContacts = canManageContacts
+    ? await getAssignableContacts(id)
+    : [];
 
   const contactItems = (assignments || []).map((a) => {
     const contact = a.account_contacts as unknown as {
@@ -90,7 +77,7 @@ export default async function ContactsPage({
         <div className="p-8 text-center">
           <p className="text-sm text-gray-500">
             {canManageContacts
-              ? "No contacts assigned yet. Use the button below to assign contacts from your account directory."
+              ? "No contacts assigned yet. Use the button below to assign contacts from linked account directories."
               : isOwner
                 ? "No contacts have been assigned to this event yet."
                 : "No shared contacts are available for this event. The event owner manages contact assignments."}

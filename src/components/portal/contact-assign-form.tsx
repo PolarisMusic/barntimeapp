@@ -9,7 +9,7 @@ export function ContactAssignForm({
   availableContacts,
 }: {
   eventId: string;
-  availableContacts: { id: string; name: string; role_label: string | null }[];
+  availableContacts: { id: string; name: string; role_label: string | null; accountName?: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -49,7 +49,7 @@ export function ContactAssignForm({
   if (availableContacts.length === 0 && !open) {
     return (
       <p className="px-4 py-3 text-xs text-gray-400">
-        All contacts from your account directory are already assigned.
+        All contacts from linked account directories are already assigned.
       </p>
     );
   }
@@ -83,7 +83,8 @@ export function ContactAssignForm({
             {availableContacts.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
-                {c.role_label ? ` (${c.role_label})` : ""}
+                {c.role_label ? ` — ${c.role_label}` : ""}
+                {c.accountName ? ` [${c.accountName}]` : ""}
               </option>
             ))}
           </select>
