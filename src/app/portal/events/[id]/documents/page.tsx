@@ -1,16 +1,8 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
-
-const typeLabels: Record<string, string> = {
-  site_map: "Site Map",
-  run_sheet: "Run Sheet",
-  vendor_packet: "Vendor Packet",
-  insurance_compliance: "Insurance / Compliance",
-  stage_plot: "Stage Plot",
-  parking_load_in: "Parking / Load-in",
-  misc: "Misc",
-};
+import { DocumentItem } from "@/components/portal/document-item";
+import { DocumentUploadForm } from "@/components/portal/document-upload-form";
 
 export default async function DocumentsPage({
   params,
@@ -21,13 +13,14 @@ export default async function DocumentsPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: event } = await supabase
-    .from("events")
-    .select("id, name")
-    .eq("id", id)
-    .single();
+  const { data: summaryRows } = await supabase.rpc("event_summary", {
+    p_event_id: id,
+  });
+  const summary = summaryRows?.[0];
+  if (!summary) notFound();
 
-  if (!event) notFound();
+  const canManageDocs = summary.can_manage_docs === true;
+  const isOwner = summary.is_owner === true;
 
   const { data: documents } = await supabase
     .from("event_documents")
@@ -40,41 +33,32 @@ export default async function DocumentsPage({
       {documents && documents.length > 0 ? (
         <div className="divide-y divide-gray-100">
           {documents.map((d) => (
-            <div
+            <DocumentItem
               key={d.id}
-              className="flex items-center justify-between p-4"
-            >
-              <div>
-                <p className="text-sm font-medium">{d.name}</p>
-                <p className="text-xs text-gray-500">
-                  {typeLabels[d.document_type] || d.document_type}
-                  {" · "}
-                  {new Date(d.created_at).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                  {d.visibility === "owner_only" && (
-                    <span className="ml-1.5 text-amber-500">Owner only</span>
-                  )}
-                </p>
-              </div>
-              <a
-                href={`/api/documents/${d.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-blue-200 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
-              >
-                Download
-              </a>
-            </div>
+              doc={{
+                id: d.id,
+                name: d.name,
+                document_type: d.document_type,
+                visibility: d.visibility,
+                created_at: d.created_at,
+              }}
+              canManage={canManageDocs}
+            />
           ))}
         </div>
       ) : (
-        <p className="p-8 text-center text-sm text-gray-500">
-          No documents available for this event.
-        </p>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            {canManageDocs
+              ? "No documents yet. Use the button below to upload event documents."
+              : isOwner
+                ? "No documents have been uploaded for this event yet."
+                : "No documents are shared for this event yet. The event owner manages document uploads."}
+          </p>
+        </div>
       )}
+
+      {canManageDocs && <DocumentUploadForm eventId={id} />}
     </div>
   );
 }

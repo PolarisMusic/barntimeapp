@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 
@@ -18,6 +18,15 @@ export default async function LocationsPage({
     .single();
 
   if (!event) notFound();
+
+  // Route guard: limited participants cannot access locations
+  const { data: summaryRows } = await supabase.rpc("event_summary", {
+    p_event_id: id,
+  });
+  const summary = summaryRows?.[0];
+  if (summary && !summary.is_owner && summary.participant_visibility_level === "limited") {
+    redirect(`/portal/events/${id}`);
+  }
 
   const { data: locations } = await supabase
     .from("event_locations")
@@ -63,9 +72,13 @@ export default async function LocationsPage({
           ))}
         </div>
       ) : (
-        <p className="p-8 text-center text-sm text-gray-500">
-          No locations available for this event.
-        </p>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            {summary?.is_owner
+              ? "No locations have been added to this event yet."
+              : "Event locations will appear here once the organizer adds them."}
+          </p>
+        </div>
       )}
     </div>
   );

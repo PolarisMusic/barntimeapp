@@ -108,9 +108,11 @@ export default async function UpdatesPage({
           })}
         </div>
       ) : (
-        <p className="p-8 text-center text-sm text-gray-500">
-          No updates yet. Activity will appear here as changes are made.
-        </p>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            No updates yet. Activity will appear here as changes are made to this event.
+          </p>
+        </div>
       )}
     </div>
   );

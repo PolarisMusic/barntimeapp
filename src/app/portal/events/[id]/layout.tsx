@@ -13,7 +13,7 @@ export default async function EventLayout({
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
-  await requireProfile();
+  const profile = await requireProfile();
   const { id } = await params;
   const supabase = await createClient();
 
@@ -38,6 +38,7 @@ export default async function EventLayout({
       .from("account_memberships")
       .select("account_role")
       .eq("account_id", summary.owner_account_id)
+      .eq("profile_id", profile.id)
       .single();
     userRole = membership?.account_role || "viewer";
   }

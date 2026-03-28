@@ -26,10 +26,15 @@ export default async function ServicesPage({
     .eq("event_id", id)
     .order("created_at");
 
-  const [{ data: canManageServices }, { data: canConfirm }] = await Promise.all([
-    supabase.rpc("can_manage_services", { p_event_id: id }),
-    supabase.rpc("can_confirm_vendor", { p_event_id: id }),
-  ]);
+  const [{ data: canManageServices }, { data: canConfirm }, { data: summaryRows }] =
+    await Promise.all([
+      supabase.rpc("can_manage_services", { p_event_id: id }),
+      supabase.rpc("can_confirm_vendor", { p_event_id: id }),
+      supabase.rpc("event_summary", { p_event_id: id }),
+    ]);
+
+  const summary = summaryRows?.[0];
+  const isOwner = summary?.is_owner === true;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
@@ -52,9 +57,15 @@ export default async function ServicesPage({
           ))}
         </div>
       ) : (
-        <p className="p-8 text-center text-sm text-gray-500">
-          No services available for this event.
-        </p>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            {canManageServices
+              ? "No services yet. Add services from the admin panel to track vendors and providers."
+              : isOwner
+                ? "No services have been added to this event yet."
+                : "Event services will appear here once the organizer adds them."}
+          </p>
+        </div>
       )}
     </div>
   );

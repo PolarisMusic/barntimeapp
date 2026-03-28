@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { EditableScheduleItem } from "@/components/portal/editable-schedule-item";
@@ -20,6 +20,15 @@ export default async function SchedulePage({
 
   if (!event) notFound();
 
+  // Route guard: limited participants cannot access schedule
+  const { data: summaryRows } = await supabase.rpc("event_summary", {
+    p_event_id: id,
+  });
+  const summary = summaryRows?.[0];
+  if (summary && !summary.is_owner && summary.participant_visibility_level === "limited") {
+    redirect(`/portal/events/${id}`);
+  }
+
   const { data: items } = await supabase
     .from("event_schedule_items")
     .select("*, event_locations(name)")
@@ -30,6 +39,7 @@ export default async function SchedulePage({
   const { data: canManage } = await supabase.rpc("can_manage_schedule", {
     p_event_id: id,
   });
+  const isOwner = summary?.is_owner === true;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
@@ -53,9 +63,15 @@ export default async function SchedulePage({
           ))}
         </div>
       ) : (
-        <p className="p-8 text-center text-sm text-gray-500">
-          No schedule items yet.
-        </p>
+        <div className="p-8 text-center">
+          <p className="text-sm text-gray-500">
+            {canManage
+              ? "No schedule items yet. Add items from the admin panel to build the event timeline."
+              : isOwner
+                ? "No schedule items have been added to this event yet."
+                : "The event schedule will appear here once the organizer adds timeline items."}
+          </p>
+        </div>
       )}
     </div>
   );
