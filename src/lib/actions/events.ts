@@ -198,7 +198,7 @@ export async function updateParticipant(
     actorId: profile.id,
     entityType: "event",
     entityId: eventId,
-    action: "participant.linked",
+    action: "participant.updated",
     summary: `Updated participant settings`,
     metadata: { accountId, ...updates },
   });
@@ -791,4 +791,41 @@ export async function updateEventContactRoleLabel(
   revalidatePath(`/portal/events/${eventId}/contacts`);
   revalidatePath(`/admin/events/${eventId}`);
   return { data: true };
+}
+
+// --- Linkable accounts for participant management ---
+
+export async function getLinkableAccounts(eventId: string) {
+  await requireProfile();
+
+  if (!(await checkCanManageEventParticipants(eventId))) {
+    return { data: [] };
+  }
+
+  const supabase = await createServiceClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("owner_account_id")
+    .eq("id", eventId)
+    .single();
+
+  if (!event) return { data: [] };
+
+  const { data: linked } = await supabase
+    .from("event_accounts")
+    .select("account_id")
+    .eq("event_id", eventId);
+
+  const linkedIds = new Set(linked?.map((r) => r.account_id) ?? []);
+
+  const { data: accounts } = await supabase
+    .from("accounts")
+    .select("id, name, type")
+    .eq("status", "active")
+    .neq("id", event.owner_account_id)
+    .order("name");
+
+  const available = (accounts || []).filter((a) => !linkedIds.has(a.id));
+  return { data: available };
 }

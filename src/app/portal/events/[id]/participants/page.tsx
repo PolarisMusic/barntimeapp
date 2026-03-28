@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
+import { getLinkableAccounts } from "@/lib/actions/events";
 import { PortalParticipantList } from "@/components/portal/participant-list";
 
 export default async function PortalParticipantsPage({
@@ -28,16 +29,9 @@ export default async function PortalParticipantsPage({
     .select("*, accounts(id, name, type)")
     .eq("event_id", id);
 
-  // Get available accounts (active, not the owner, not already linked)
-  const { data: allAccounts } = await supabase
-    .from("accounts")
-    .select("id, name, type")
-    .eq("status", "active")
-    .neq("id", summary.owner_account_id)
-    .order("name");
-
-  const linkedIds = new Set(participants?.map((p) => p.account_id) ?? []);
-  const availableAccounts = (allAccounts || []).filter((a) => !linkedIds.has(a.id));
+  // Use service-client action to get all linkable accounts
+  // (session client would be filtered by RLS to only the user's own accounts)
+  const { data: availableAccounts } = await getLinkableAccounts(id);
 
   const participantItems = (participants || []).map((p) => ({
     accountId: p.account_id,
@@ -52,7 +46,7 @@ export default async function PortalParticipantsPage({
       <PortalParticipantList
         eventId={id}
         participants={participantItems}
-        availableAccounts={availableAccounts}
+        availableAccounts={availableAccounts || []}
       />
     </div>
   );

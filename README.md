@@ -40,10 +40,11 @@ src/
 │               ├── layout.tsx   # Shared event workspace (header + tabs)
 │               ├── schedule/    # Editable schedule notes
 │               ├── services/    # Editable service notes + vendor confirm
-│               ├── contacts/
+│               ├── contacts/    # Contact assign/edit/remove
 │               ├── locations/
-│               ├── documents/
-│               └── updates/     # Activity feed
+│               ├── documents/   # Upload/edit/delete
+│               ├── participants/ # Owner-side participant management
+│               └── updates/     # Visibility-filtered activity feed
 ├── components/
 │   ├── ui/                      # Shared UI components
 │   ├── admin/                   # Admin-specific components
@@ -70,7 +71,10 @@ supabase/
 │   ├── 00001_initial_schema.sql    # Tables, enums, RLS, helpers, read models
 │   ├── 00002_permission_hardening.sql  # Event contacts, visibility enums, new helpers
 │   ├── 00003_permission_model_v2.sql   # Role defaults + explicit overrides model
-│   └── 00004_unify_permission_checks.sql # Unify all helpers on computed-default model
+│   ├── 00004_unify_permission_checks.sql # Unify all helpers on computed-default model
+│   ├── 00005_visibility_aware_counts.sql # Visibility-aware event_summary counts
+│   ├── 00006_dashboard_enhancements.sql  # Dashboard RPCs with location/schedule/timezone
+│   └── 00007_fix_dashboard_dedupe.sql    # DISTINCT ON dedupe for dashboard
 ├── seed.sql                     # Example seed data template
 └── tests/
     └── permission_tests.sql     # Permission integration tests (data + auth context)
@@ -205,6 +209,7 @@ supabase db push
 # 4. supabase/migrations/00004_unify_permission_checks.sql
 # 5. supabase/migrations/00005_visibility_aware_counts.sql
 # 6. supabase/migrations/00006_dashboard_enhancements.sql
+# 7. supabase/migrations/00007_fix_dashboard_dedupe.sql
 ```
 
 ### Storage Setup

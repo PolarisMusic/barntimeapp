@@ -180,6 +180,16 @@ function ParticipantItem({
     router.refresh();
   }
 
+  async function handleRoleLabelBlur(e: React.FocusEvent<HTMLInputElement>) {
+    const newLabel = e.target.value;
+    if (newLabel !== (participant.roleLabel || "")) {
+      setUpdating(true);
+      await updateParticipant(eventId, participant.accountId, { role_label: newLabel });
+      setUpdating(false);
+      router.refresh();
+    }
+  }
+
   if (removed) return null;
 
   return (
@@ -187,11 +197,16 @@ function ParticipantItem({
       <div className="flex items-center gap-4">
         <div>
           <p className="text-sm font-medium">{participant.accountName}</p>
-          <p className="text-xs text-gray-500">
-            {participant.accountType}
-            {participant.roleLabel && ` — ${participant.roleLabel}`}
-          </p>
+          <p className="text-xs text-gray-500">{participant.accountType}</p>
         </div>
+        <input
+          type="text"
+          defaultValue={participant.roleLabel || ""}
+          placeholder="Role label"
+          onBlur={handleRoleLabelBlur}
+          disabled={updating}
+          className="rounded-md border border-gray-200 px-2 py-1 text-xs disabled:opacity-50"
+        />
         <select
           value={participant.visibility}
           onChange={(e) => handleVisibilityChange(e.target.value)}

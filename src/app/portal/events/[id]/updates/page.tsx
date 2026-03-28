@@ -25,12 +25,14 @@ const actionLabels: Record<string, string> = {
   "contact.assigned": "Contact assigned",
   "contact.unassigned": "Contact removed",
   "contact.role_updated": "Contact role updated",
+  "participant.updated": "Participant updated",
 };
 
 // Actions only visible to owner-account members and staff
 const ownerOnlyActions = new Set([
   "participant.linked",
   "participant.unlinked",
+  "participant.updated",
 ]);
 
 // Actions hidden from limited participants (schedule + location)
@@ -100,23 +102,25 @@ export default async function UpdatesPage({
     return true;
   });
 
-  // For non-owner users, redact specific names from summaries
-  // to prevent information leakage about owner-only items
+  // Redact specific names from summaries to prevent information leakage
   const sanitizedActivities = visibleActivities.slice(0, 50).map((a) => {
     let displaySummary = a.summary;
     if (!isOwner) {
-      // Redact document names from doc actions (may be owner-only docs)
-      if (
-        a.action.startsWith("document.") &&
-        displaySummary
-      ) {
+      // Redact document names (may reference owner-only docs)
+      if (a.action.startsWith("document.") && displaySummary) {
         displaySummary = null;
       }
-      // Redact contact names from contact actions (may be owner-only contacts)
-      if (
-        a.action.startsWith("contact.") &&
-        displaySummary
-      ) {
+      // Redact contact names (may reference owner-only contacts)
+      if (a.action.startsWith("contact.") && displaySummary) {
+        displaySummary = null;
+      }
+    }
+    if (isLimited) {
+      // Redact service details (limited participants only see own-account services)
+      if (a.action.startsWith("service.") && displaySummary) {
+        displaySummary = null;
+      }
+      if (a.action === "vendor.confirmed" && displaySummary) {
         displaySummary = null;
       }
     }
