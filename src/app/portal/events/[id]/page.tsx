@@ -49,7 +49,7 @@ export default async function EventOverviewPage({
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <Link
           href={`/portal/events/${id}/schedule`}
           className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
@@ -75,14 +75,20 @@ export default async function EventOverviewPage({
           href={`/portal/events/${id}/contacts`}
           className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
         >
+          <p className="text-2xl font-bold">{summary.contact_count ?? 0}</p>
           <p className="text-sm text-gray-500">Contacts</p>
         </Link>
         <Link
           href={`/portal/events/${id}/locations`}
           className="rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
         >
+          <p className="text-2xl font-bold">{summary.location_count ?? 0}</p>
           <p className="text-sm text-gray-500">Locations</p>
         </Link>
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <p className="text-2xl font-bold">{summary.participant_count}</p>
+          <p className="text-sm text-gray-500">Participants</p>
+        </div>
       </div>
 
       {/* Inline permission indicators for the current user */}

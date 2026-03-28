@@ -17,6 +17,8 @@ Event production management portal for Barn Time, hosted at `portal.barntime.net
 src/
 ├── app/
 │   ├── auth/                    # Auth routes (login, callback, confirm, signout)
+│   ├── api/
+│   │   └── documents/[id]/      # Secure document download (signed URLs)
 │   ├── admin/                   # Admin portal (staff/platform_admin only)
 │   │   ├── accounts/            # Account CRUD, members, contacts
 │   │   │   ├── new/
@@ -30,6 +32,7 @@ src/
 │   │           ├── services/
 │   │           ├── schedule/
 │   │           ├── locations/
+│   │           ├── contacts/    # Event-scoped contact assignments
 │   │           └── documents/
 │   └── portal/                  # Client-facing portal
 │       └── events/
@@ -37,6 +40,7 @@ src/
 │               ├── schedule/
 │               ├── services/
 │               ├── contacts/
+│               ├── locations/
 │               └── documents/
 ├── components/
 │   ├── ui/                      # Shared UI components
@@ -48,6 +52,7 @@ src/
 │   │   ├── client.ts            # Browser client
 │   │   └── middleware.ts        # Session refresh middleware
 │   ├── auth.ts                  # Auth helpers (requireUser, requireAdmin, etc.)
+│   ├── permissions.ts           # Server-side permission checks (wraps DB RPCs)
 │   └── actions/                 # Server Actions (all write operations)
 │       ├── accounts.ts
 │       ├── events.ts
@@ -60,10 +65,13 @@ src/
 
 supabase/
 ├── migrations/
-│   └── 00001_initial_schema.sql # Full schema: tables, enums, RLS, helpers, views
+│   ├── 00001_initial_schema.sql    # Tables, enums, RLS, helpers, read models
+│   ├── 00002_permission_hardening.sql  # Event contacts, visibility enums, new helpers
+│   ├── 00003_permission_model_v2.sql   # Role defaults + explicit overrides model
+│   └── 00004_unify_permission_checks.sql # Unify all helpers on computed-default model
 ├── seed.sql                     # Example seed data template
 └── tests/
-    └── permission_tests.sql     # Permission helper integration tests
+    └── permission_tests.sql     # Permission integration tests (data + auth context)
 ```
 
 ## Architecture
@@ -73,12 +81,13 @@ supabase/
 | Primitive | Purpose |
 |-----------|---------|
 | `profiles` | Login identity (1:1 with auth.users) |
-| `accounts` | Business/entity (client, vendor, venue, internal) |
+| `accounts` | Business/entity (client, vendor, venue, performer, internal) |
 | `account_memberships` | Links profiles to accounts with a role |
-| `account_membership_permissions` | Fine-grained permission grants per membership |
+| `account_membership_permissions` | Explicit permission overrides beyond role defaults |
 | `account_contacts` | Operational contacts (not necessarily logins) |
 | `events` | Production/event record |
 | `event_accounts` | Participant accounts linked to an event |
+| `event_contact_roles` | Event-scoped contact assignments with visibility |
 | `event_locations` | Locations for an event |
 | `event_services` | Services/vendors for an event |
 | `event_schedule_items` | Timeline items for an event |
@@ -95,26 +104,27 @@ supabase/
 **2. Account Role** (in `account_memberships`):
 - `account_owner` — all permissions within the account
 - `account_manager` — most permissions, including vendor confirmation
-- `event_coordinator` — event management, no member management
+- `event_coordinator` — event management, no member management or vendor confirm
 - `viewer` — read-only access
 
-**3. Permission Grants** (in `account_membership_permissions`):
-| Key | Purpose |
-|-----|---------|
-| `account.manage_members` | Add/remove account members |
-| `account.manage_contacts` | Manage account contacts |
-| `event.create` | Create events for the account |
-| `event.view_owned` | View events owned by the account |
-| `event.edit_owned` | Edit events owned by the account |
-| `event.link_participants` | Link participant accounts to events |
-| `event.manage_schedule` | Manage event schedule items |
-| `event.manage_services` | Manage event services |
-| `event.manage_documents` | Upload/manage event documents |
-| `event.manage_contacts` | Manage event-level contacts |
-| `vendor.confirm` | Confirm vendor services |
-| `event.view_participant` | View events as a participant account |
+**3. Permission Grants** (computed defaults + explicit overrides):
 
-Default permissions are auto-seeded when a membership is created, based on the account role. Permissions can be individually added or removed for fine-grained control.
+| Key | Owner | Manager | Coordinator | Viewer |
+|-----|:-----:|:-------:|:-----------:|:------:|
+| `account.manage_members` | Y | | | |
+| `account.manage_contacts` | Y | Y | | |
+| `event.create` | Y | Y | | |
+| `event.view_owned` | Y | Y | Y | Y |
+| `event.edit_owned` | Y | Y | Y | |
+| `event.link_participants` | Y | Y | | |
+| `event.manage_schedule` | Y | Y | Y | |
+| `event.manage_services` | Y | Y | Y | |
+| `event.manage_documents` | Y | Y | Y | |
+| `event.manage_contacts` | Y | Y | Y | |
+| `vendor.confirm` | Y | Y | | |
+| `event.view_participant` | Y | Y | Y | Y |
+
+**Default permissions are computed at query time** from `get_default_permissions(role)`. The `account_membership_permissions` table stores **only explicit overrides** — additional grants beyond the role's defaults. Changing a user's role does not destroy their explicit overrides.
 
 ### Owner vs Participant Distinction
 
@@ -124,21 +134,42 @@ Default permissions are auto-seeded when a membership is created, based on the a
 - Participant-account members get narrower access (view only, unless granted)
 - The owner account is NEVER added to `event_accounts`
 
+### Participant Visibility
+
+Participant accounts have a `visibility` level: `limited` or `standard`.
+
+| Section | Owner Members | Standard Participants | Limited Participants |
+|---------|:------------:|:--------------------:|:-------------------:|
+| Event overview | Y | Y | Y |
+| Schedule | Y | Y | |
+| Locations | Y | Y | |
+| Services | Y | Y (all) | Own account's only |
+| Documents (all_participants) | Y | Y | Y |
+| Documents (owner_only) | Y | | |
+| Contacts (all_participants) | Y | Y | Y |
+| Contacts (owner_only) | Y | | |
+
 ### Authorization Flow
 
-1. **Database helper functions** (`is_staff()`, `can_view_event()`, etc.) are the source of truth
+1. **Database helper functions** (`is_staff()`, `can_view_event()`, `membership_has_permission()`, etc.) are the source of truth
 2. **RLS policies** use these helpers on every user-facing table
-3. **Server Actions** run privileged writes with the service role
-4. **Middleware** handles session refresh and auth redirects
-5. The browser client reads data under RLS; writes go through Server Actions
+3. **Server-side permission checks** (`src/lib/permissions.ts`) wrap DB RPCs for use in Server Actions
+4. **Server Actions** authenticate → check permission → write with service role → log activity
+5. **Middleware** handles session refresh and auth redirects
+6. The browser client reads data under RLS; writes go through Server Actions
 
-### Write Path
+### Document Access
 
-All mutations go through Server Actions in `src/lib/actions/`. Every mutation:
-- Verifies the caller's identity (`requireAdmin()` or `requireProfile()`)
-- Uses the service role client for writes
-- Logs an entry to `activity_log`
-- Calls `revalidatePath()` to refresh affected pages
+Documents are stored in a Supabase Storage bucket. Access is controlled by:
+- **Visibility**: `owner_only` (only owner-account members) or `all_participants` (anyone who can view the event)
+- **Download**: `/api/documents/[id]` authenticates the user, verifies RLS access, generates a signed URL, and redirects
+
+### Event-Scoped Contacts
+
+Account contacts can be assigned to events via `event_contact_roles`:
+- Each assignment has a `role_label` (e.g., "Day-of Coordinator") and `visibility` (`owner_only` or `all_participants`)
+- RLS enforces visibility: participants only see `all_participants` contacts
+- This is separate from the account contact directory
 
 ## Setup
 
@@ -159,15 +190,27 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 ### Database Setup
 
-Run the migration against your Supabase project:
+Run **all migrations in order** against your Supabase project:
 
 ```bash
 # Via Supabase CLI
 supabase db push
 
-# Or run the SQL directly in the Supabase SQL Editor:
-# supabase/migrations/00001_initial_schema.sql
+# Or run each migration manually in the SQL Editor:
+# 1. supabase/migrations/00001_initial_schema.sql
+# 2. supabase/migrations/00002_permission_hardening.sql
+# 3. supabase/migrations/00003_permission_model_v2.sql
+# 4. supabase/migrations/00004_unify_permission_checks.sql
 ```
+
+### Storage Setup
+
+Create a storage bucket named `documents` in your Supabase project:
+
+1. Go to Storage in the Supabase dashboard
+2. Create a new bucket named `documents`
+3. Set it to private (not public)
+4. The app uses signed URLs for secure download access
 
 ### Development
 
@@ -194,6 +237,26 @@ After deploying:
 UPDATE profiles SET platform_role = 'platform_admin' WHERE email = 'your@email.com';
 ```
 
+### Running Permission Tests
+
+After applying all migrations, run the test suite:
+
+```bash
+# In the Supabase SQL Editor, paste and run:
+# supabase/tests/permission_tests.sql
+```
+
+Tests cover:
+- Role default computation
+- Effective permission resolution (defaults + overrides)
+- Role change preserving explicit overrides
+- `membership_has_permission()` correctness
+- Auth-context tests for all user roles (owner, coordinator, viewer, participant, unrelated, staff)
+- Dashboard and event summary RPC access
+- Document visibility enforcement (owner_only vs all_participants)
+- Contact visibility enforcement
+- Participant visibility enforcement (limited vs standard)
+
 ## Document Types
 
 | Type | Label |
@@ -206,6 +269,10 @@ UPDATE profiles SET platform_role = 'platform_admin' WHERE email = 'your@email.c
 | `parking_load_in` | Parking / Load-in |
 | `misc` | Miscellaneous |
 
+## Account Types
+
+`client` · `vendor` · `venue` · `performer` · `internal`
+
 ## Event Statuses
 
 `draft` → `active` → `finalized` → `archived`
@@ -213,8 +280,11 @@ UPDATE profiles SET platform_role = 'platform_admin' WHERE email = 'your@email.c
 ## Design Decisions
 
 - **No custom JWT claims**: Permissions live in the database to avoid stale-permission problems
+- **Computed role defaults**: Default permissions are derived from the role at query time, not stored as rows. Only explicit overrides are persisted. This means role changes don't destroy custom grants.
 - **No multi-email-per-user**: If a company needs 5 logins, that means 5 auth users and 5 memberships
 - **Contacts are not logins**: `account_contacts` stores operational contacts; only `profiles` can log in
+- **Event-scoped contacts**: Contacts are assigned to events explicitly via `event_contact_roles`, not leaked from all linked accounts
+- **Participant visibility tiers**: Limited participants see only their own services, public contacts, and public documents. Standard participants see all participant-shared sections.
 - **No realtime/native/spreadsheet**: Deferred to post-MVP
 - **Section-based event editor**: Services, schedule, locations, documents, and contacts are separate editable sections — not a spreadsheet
 - **Activity log before notifications**: Every mutation logs to `activity_log`; notifications are built on top
