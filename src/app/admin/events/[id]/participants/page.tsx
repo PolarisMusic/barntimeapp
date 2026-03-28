@@ -57,6 +57,7 @@ export default async function ParticipantsPage({
                 accountId={p.account_id}
                 account={p.accounts as unknown as { id: string; name: string; type: string }}
                 roleLabel={p.role_label}
+                visibility={p.visibility}
               />
             ))}
           </div>
