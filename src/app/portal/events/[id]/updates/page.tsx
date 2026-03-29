@@ -108,11 +108,11 @@ function formatActivity(action: string, details: Details, summary: string | null
     case "document.deleted":
       return name ? `Removed "${name}"` : "Removed a document";
     case "contact.assigned":
-      return "Assigned a contact";
+      return name ? `Assigned ${name} to event` : "Assigned a contact";
     case "contact.unassigned":
-      return "Removed a contact";
+      return name ? `Removed ${name} from event` : "Removed a contact";
     case "contact.role_updated":
-      return "Updated contact details";
+      return name ? `Updated ${name} details` : "Updated contact details";
     default:
       return summary || action;
   }

@@ -1,0 +1,36 @@
+name: Check DB Types
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check-types:
+    name: Verify database types are up to date
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Supabase
+        run: supabase start -x realtime,storage-api,imgproxy,inbucket,postgrest-exporter,pgadmin-schema-diff,pgadmin-data-diff
+
+      - name: Generate types and check for drift
+        run: |
+          supabase gen types typescript --local > /tmp/db-types-fresh.ts
+          if ! diff -q src/types/database.generated.ts /tmp/db-types-fresh.ts > /dev/null 2>&1; then
+            echo "::error::Database types are stale. Run 'npm run db:types' locally and commit the result."
+            diff src/types/database.generated.ts /tmp/db-types-fresh.ts || true
+            exit 1
+          fi
+          echo "Database types are up to date."
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop

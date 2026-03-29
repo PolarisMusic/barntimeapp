@@ -195,6 +195,12 @@ export async function updateParticipant(
     updateData.visibility = updates.visibility === "standard" ? "standard" : "limited";
   }
 
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("id", accountId)
+    .single();
+
   const { error } = await supabase
     .from("event_accounts")
     .update(updateData)
@@ -210,7 +216,7 @@ export async function updateParticipant(
     action: "participant.updated",
     summary: `Updated participant settings`,
     metadata: { accountId, ...updates },
-    details: { subject_type: "participant", subject_name: accountId, field_names: Object.keys(updates) },
+    details: { subject_type: "participant", subject_name: account?.name || accountId, field_names: Object.keys(updates) },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -227,6 +233,12 @@ export async function unlinkParticipantAccount(eventId: string, accountId: strin
 
   const supabase = await createServiceClient();
 
+  const { data: account } = await supabase
+    .from("accounts")
+    .select("name")
+    .eq("id", accountId)
+    .single();
+
   const { error } = await supabase
     .from("event_accounts")
     .delete()
@@ -242,7 +254,7 @@ export async function unlinkParticipantAccount(eventId: string, accountId: strin
     action: "participant.unlinked",
     summary: `Removed participant account from event`,
     metadata: { accountId },
-    details: { subject_type: "participant", subject_name: accountId },
+    details: { subject_type: "participant", subject_name: account?.name || accountId },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -796,6 +808,15 @@ export async function updateEventContactRoleLabel(
 
   const supabase = await createServiceClient();
 
+  // Fetch contact name for activity log
+  const { data: assignment } = await supabase
+    .from("event_contact_roles")
+    .select("contact_id, account_contacts(name)")
+    .eq("id", assignmentId)
+    .single();
+
+  const contactName = (assignment?.account_contacts as unknown as { name: string })?.name;
+
   const { error } = await supabase
     .from("event_contact_roles")
     .update({ role_label: roleLabel || null })
@@ -809,7 +830,7 @@ export async function updateEventContactRoleLabel(
     entityId: eventId,
     action: "contact.role_updated",
     summary: `Updated contact role label`,
-    details: { subject_type: "contact", field_names: ["role_label"] },
+    details: { subject_type: "contact", subject_name: contactName || undefined, field_names: ["role_label"] },
   });
 
   revalidatePath(`/portal/events/${eventId}/contacts`);

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addLinkableAccount, removeLinkableAccount } from "@/lib/actions/linkable-accounts";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { useToast } from "@/components/ui/toast-provider";
 
 type Account = { id: string; name: string; type: string };
 
@@ -16,9 +18,10 @@ export function LinkableAccountsManager({
   allAccounts: Account[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [selectedId, setSelectedId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const allowlistIds = new Set(allowlist.map((a) => a.id));
   const available = allAccounts.filter((a) => !allowlistIds.has(a.id));
@@ -26,26 +29,31 @@ export function LinkableAccountsManager({
   async function handleAdd() {
     if (!selectedId) return;
     setSubmitting(true);
-    setError(null);
     const result = await addLinkableAccount(ownerAccountId, selectedId);
     setSubmitting(false);
     if (result.error) {
-      setError(result.error);
+      toast(result.error, "error");
     } else {
       setSelectedId("");
+      toast("Account added to allowlist", "success");
       router.refresh();
     }
   }
 
-  async function handleRemove(accountId: string) {
-    setError(null);
-    const result = await removeLinkableAccount(ownerAccountId, accountId);
+  async function handleRemoveConfirm() {
+    if (!removing) return;
+    const accountName = allowlist.find((a) => a.id === removing)?.name || "this account";
+    const result = await removeLinkableAccount(ownerAccountId, removing);
+    setRemoving(null);
     if (result.error) {
-      setError(result.error);
+      toast(result.error, "error");
     } else {
+      toast(`Removed ${accountName} from allowlist`, "success");
       router.refresh();
     }
   }
+
+  const removingAccount = allowlist.find((a) => a.id === removing);
 
   return (
     <div>
@@ -71,7 +79,7 @@ export function LinkableAccountsManager({
                 <td className="py-2 text-sm text-gray-500">{a.type}</td>
                 <td className="py-2 text-right">
                   <button
-                    onClick={() => handleRemove(a.id)}
+                    onClick={() => setRemoving(a.id)}
                     className="text-xs text-red-500 hover:text-red-700"
                   >
                     Remove
@@ -112,7 +120,15 @@ export function LinkableAccountsManager({
         </div>
       )}
 
-      {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
+      <ConfirmDialog
+        open={removing !== null}
+        title="Remove from allowlist"
+        message={`Remove "${removingAccount?.name}" from the participant allowlist? This won't affect events where they are already linked.`}
+        confirmLabel="Remove"
+        variant="danger"
+        onConfirm={handleRemoveConfirm}
+        onCancel={() => setRemoving(null)}
+      />
     </div>
   );
 }

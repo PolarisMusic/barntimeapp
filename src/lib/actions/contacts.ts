@@ -218,6 +218,13 @@ export async function assignContactToEvent(formData: FormData) {
 
   if (!contactId) return { error: "Contact is required" };
 
+  // Fetch contact name for activity log
+  const { data: contact } = await supabase
+    .from("account_contacts")
+    .select("name")
+    .eq("id", contactId)
+    .single();
+
   const { data: assignment, error } = await supabase
     .from("event_contact_roles")
     .insert({
@@ -239,8 +246,8 @@ export async function assignContactToEvent(formData: FormData) {
     entityType: "event",
     entityId: eventId,
     action: "contact.assigned",
-    summary: `Assigned contact to event`,
-    details: { subject_type: "contact", visibility_scope: visibility || "owner_only" },
+    summary: `Assigned contact "${contact?.name}" to event`,
+    details: { subject_type: "contact", subject_name: contact?.name || undefined, visibility_scope: visibility || "owner_only" },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -263,6 +270,15 @@ export async function updateContactVisibility(
 
   const supabase = await createServiceClient();
 
+  // Fetch contact name for activity log
+  const { data: role } = await supabase
+    .from("event_contact_roles")
+    .select("contact_id, account_contacts(name)")
+    .eq("id", contactRoleId)
+    .single();
+
+  const contactName = (role?.account_contacts as unknown as { name: string })?.name;
+
   const { error } = await supabase
     .from("event_contact_roles")
     .update({ visibility: validVisibility })
@@ -276,7 +292,7 @@ export async function updateContactVisibility(
     entityId: eventId,
     action: "contact.role_updated",
     summary: `Changed contact visibility to ${validVisibility}`,
-    details: { subject_type: "contact", visibility_scope: validVisibility, field_names: ["visibility"] },
+    details: { subject_type: "contact", subject_name: contactName || undefined, visibility_scope: validVisibility, field_names: ["visibility"] },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
@@ -293,6 +309,15 @@ export async function removeContactFromEvent(eventId: string, contactRoleId: str
 
   const supabase = await createServiceClient();
 
+  // Fetch contact name before deletion for activity log
+  const { data: role } = await supabase
+    .from("event_contact_roles")
+    .select("contact_id, account_contacts(name)")
+    .eq("id", contactRoleId)
+    .single();
+
+  const contactName = (role?.account_contacts as unknown as { name: string })?.name;
+
   const { error } = await supabase
     .from("event_contact_roles")
     .delete()
@@ -305,8 +330,8 @@ export async function removeContactFromEvent(eventId: string, contactRoleId: str
     entityType: "event",
     entityId: eventId,
     action: "contact.unassigned",
-    summary: `Removed contact from event`,
-    details: { subject_type: "contact" },
+    summary: `Removed contact "${contactName}" from event`,
+    details: { subject_type: "contact", subject_name: contactName || undefined },
   });
 
   revalidatePath(`/admin/events/${eventId}`);
