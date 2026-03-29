@@ -87,56 +87,66 @@ function formatActivity(action: string, details: Details, summary: string | null
 
   switch (action) {
     case "event.created":
-      return name ? `Created event "${name}"` : "Created the event";
+      return name ? `created event "${name}"` : "created the event";
     case "event.updated":
-      return name ? `Updated event "${name}"` : "Updated event details";
+      return name ? `updated event details for "${name}"` : "updated event details";
+
+    // Participants
     case "participant.linked": {
       const visLabel = vis ? visibilityLabels[vis] || vis : null;
-      if (name && visLabel) return `Added ${name} as ${visLabel} participant`;
-      return name ? `Added ${name} as participant` : "Added a participant";
+      if (name && visLabel) return `added ${name} as a ${visLabel} participant`;
+      return name ? `added ${name} as a participant` : "added a participant";
     }
     case "participant.unlinked":
-      return name ? `Removed ${name} from event` : "Removed a participant";
+      return name ? `removed ${name} from the event` : "removed a participant";
     case "participant.updated": {
       if (fields.includes("visibility") && vis) {
         const visLabel = visibilityLabels[vis] || vis;
-        return name ? `Changed ${name} to ${visLabel} visibility` : "Updated participant visibility";
+        return name ? `changed ${name} visibility to ${visLabel}` : "changed a participant's visibility";
       }
       if (fields.includes("role_label")) {
         const role = d?.role_label as string | undefined;
-        if (name && role) return `Set ${name} role to "${role}"`;
-        return name ? `Updated ${name} role` : "Updated participant role";
+        if (name && role) return `set ${name}'s role to "${role}"`;
+        return name ? `updated ${name}'s role` : "updated a participant's role";
       }
-      return name ? `Updated ${name} settings` : "Updated participant settings";
+      return name ? `updated ${name}'s settings` : "updated participant settings";
     }
+
+    // Services
     case "service.created":
-      return name ? `Added service "${name}"` : "Added a service";
+      return name ? `added a new service: "${name}"` : "added a new service";
     case "service.updated":
-      return name ? `Updated service "${name}"` : "Updated a service";
+      return name ? `updated service "${name}"` : "updated a service";
     case "service.deleted":
-      return name ? `Removed service "${name}"` : "Removed a service";
+      return name ? `removed service "${name}"` : "removed a service";
     case "service.notes_updated":
-      return name ? `Updated notes on "${name}"` : "Updated service notes";
+      return name ? `added notes on service "${name}"` : "updated service notes";
     case "vendor.confirmed":
-      return name ? `Confirmed vendor for "${name}"` : "Confirmed a vendor";
+      return name ? `confirmed the vendor for "${name}"` : "confirmed a vendor";
+
+    // Schedule
     case "schedule.item_created":
-      return name ? `Added "${name}" to schedule` : "Added a schedule item";
+      return name ? `added "${name}" to the schedule` : "added a schedule item";
     case "schedule.item_updated":
-      return name ? `Updated "${name}" in schedule` : "Updated a schedule item";
+      return name ? `updated "${name}" on the schedule` : "updated a schedule item";
     case "schedule.item_deleted":
-      return name ? `Removed "${name}" from schedule` : "Removed a schedule item";
+      return name ? `removed "${name}" from the schedule` : "removed a schedule item";
     case "schedule.notes_updated":
-      return name ? `Updated notes on "${name}"` : "Updated schedule item notes";
+      return name ? `added notes on "${name}"` : "updated schedule notes";
+
+    // Locations
     case "location.created":
-      return name ? `Added location "${name}"` : "Added a location";
+      return name ? `added a new location: "${name}"` : "added a new location";
     case "location.updated":
-      return name ? `Updated location "${name}"` : "Updated a location";
+      return name ? `updated location "${name}"` : "updated a location";
     case "location.deleted":
-      return name ? `Removed location "${name}"` : "Removed a location";
+      return name ? `removed location "${name}"` : "removed a location";
+
+    // Documents
     case "document.uploaded": {
       const typeLabel = docType ? docTypeLabels[docType] || docType : null;
-      if (name && typeLabel && typeLabel !== "document") return `Uploaded ${typeLabel} "${name}"`;
-      return name ? `Uploaded "${name}"` : "Uploaded a document";
+      if (name && typeLabel && typeLabel !== "document") return `uploaded a ${typeLabel}: "${name}"`;
+      return name ? `uploaded "${name}"` : "uploaded a document";
     }
     case "document.updated": {
       const fieldLabelMap: Record<string, string> = {
@@ -149,26 +159,28 @@ function formatActivity(action: string, details: Details, summary: string | null
         .map((f) => fieldLabelMap[f])
         .filter(Boolean);
       if (name && changedLabels.length > 0) {
-        return `Updated ${changedLabels.join(", ")} on "${name}"`;
+        return `updated ${changedLabels.join(", ")} on "${name}"`;
       }
-      return name ? `Updated document "${name}"` : "Updated a document";
+      return name ? `updated document "${name}"` : "updated a document";
     }
     case "document.deleted":
-      return name ? `Removed document "${name}"` : "Removed a document";
+      return name ? `removed document "${name}"` : "removed a document";
+
+    // Contacts
     case "contact.assigned": {
       const visLabel = vis ? visibilityLabels[vis] || vis : null;
-      if (name && visLabel) return `Assigned ${name} (visible to ${visLabel})`;
-      return name ? `Assigned ${name} to event` : "Assigned a contact";
+      if (name && visLabel) return `assigned ${name} to the event (visible to ${visLabel})`;
+      return name ? `assigned ${name} to the event` : "assigned a contact";
     }
     case "contact.unassigned":
-      return name ? `Removed ${name} from contacts` : "Removed a contact";
+      return name ? `removed ${name} from contacts` : "removed a contact";
     case "contact.role_updated": {
       if (fields.includes("visibility") && vis) {
         const visLabel = visibilityLabels[vis] || vis;
-        return name ? `Changed ${name} visibility to ${visLabel}` : `Changed contact visibility to ${visLabel}`;
+        return name ? `changed ${name}'s visibility to ${visLabel}` : `changed contact visibility to ${visLabel}`;
       }
-      if (fields.includes("role_label")) return name ? `Updated ${name} event role` : "Updated contact role";
-      return name ? `Updated ${name} details` : "Updated contact details";
+      if (fields.includes("role_label")) return name ? `updated ${name}'s event role` : "updated a contact's role";
+      return name ? `updated ${name}'s details` : "updated contact details";
     }
     default:
       return summary || action;

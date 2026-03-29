@@ -43,6 +43,7 @@ export function EditableContactItem({
       setRemoving(false);
       return false;
     } else {
+      toast(`Removed ${assignment.contact.name}`, "success");
       setRemoved(true);
       router.refresh();
       return true;
@@ -56,6 +57,7 @@ export function EditableContactItem({
     if (result.error) {
       toast(result.error, "error");
     } else {
+      toast("Visibility updated", "success");
       router.refresh();
     }
   }

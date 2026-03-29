@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocument, updateDocument } from "@/lib/actions/documents";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -54,6 +54,16 @@ export function DocumentItem({
   const [docType, setDocType] = useState(doc.document_type);
   const [visibility, setVisibility] = useState(doc.visibility);
   const [notes, setNotes] = useState(doc.notes || "");
+
+  // Resync edit fields when server data changes and we're not editing
+  useEffect(() => {
+    if (!editing) {
+      setName(doc.name);
+      setDocType(doc.document_type);
+      setVisibility(doc.visibility);
+      setNotes(doc.notes || "");
+    }
+  }, [doc.name, doc.document_type, doc.visibility, doc.notes, editing]);
 
   async function handleDelete(): Promise<boolean> {
     setDeleting(true);
