@@ -216,7 +216,13 @@ export async function updateParticipant(
     action: "participant.updated",
     summary: `Updated participant settings`,
     metadata: { accountId, ...updates },
-    details: { subject_type: "participant", subject_name: account?.name || accountId, field_names: Object.keys(updates) },
+    details: {
+      subject_type: "participant",
+      subject_name: account?.name || accountId,
+      field_names: Object.keys(updates),
+      ...(updates.visibility !== undefined && { visibility_scope: updateData.visibility as string }),
+      ...(updates.role_label !== undefined && { role_label: updates.role_label || null }),
+    },
   });
 
   revalidatePath(`/admin/events/${eventId}`);

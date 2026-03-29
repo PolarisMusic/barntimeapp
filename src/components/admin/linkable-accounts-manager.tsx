@@ -22,9 +22,24 @@ export function LinkableAccountsManager({
   const [selectedId, setSelectedId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const allowlistIds = new Set(allowlist.map((a) => a.id));
-  const available = allAccounts.filter((a) => !allowlistIds.has(a.id));
+  const available = allAccounts
+    .filter((a) => !allowlistIds.has(a.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  const filteredAvailable = search.trim()
+    ? available.filter(
+        (a) =>
+          a.name.toLowerCase().includes(search.toLowerCase()) ||
+          a.type.toLowerCase().includes(search.toLowerCase())
+      )
+    : available;
+
+  const sortedAllowlist = [...allowlist].sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
 
   async function handleAdd() {
     if (!selectedId) return;
@@ -57,7 +72,7 @@ export function LinkableAccountsManager({
 
   return (
     <div>
-      {allowlist.length > 0 ? (
+      {sortedAllowlist.length > 0 ? (
         <table className="mb-4 min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
@@ -73,7 +88,7 @@ export function LinkableAccountsManager({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {allowlist.map((a) => (
+            {sortedAllowlist.map((a) => (
               <tr key={a.id}>
                 <td className="py-2 text-sm">{a.name}</td>
                 <td className="py-2 text-sm text-gray-500">{a.type}</td>
@@ -97,26 +112,43 @@ export function LinkableAccountsManager({
       )}
 
       {available.length > 0 && (
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">Select account to add...</option>
-            {available.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name} ({a.type})
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleAdd}
-            disabled={submitting || !selectedId}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting ? "Adding..." : "Add"}
-          </button>
+        <div className="space-y-2">
+          {available.length > 8 && (
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSelectedId("");
+              }}
+              placeholder="Search accounts..."
+              className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          )}
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedId}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Select account to add...</option>
+              {filteredAvailable.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.type})
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleAdd}
+              disabled={submitting || !selectedId}
+              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {submitting ? "Adding..." : "Add"}
+            </button>
+          </div>
+          {search && filteredAvailable.length === 0 && (
+            <p className="text-xs text-gray-400">No matching accounts</p>
+          )}
         </div>
       )}
 

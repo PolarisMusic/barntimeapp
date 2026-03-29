@@ -62,6 +62,7 @@ export function DocumentItem({
       toast(result.error, "error");
       setDeleting(false);
     } else {
+      toast("Document deleted", "success");
       setDeleted(true);
       router.refresh();
     }
