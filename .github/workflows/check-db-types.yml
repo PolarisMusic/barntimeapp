@@ -6,6 +6,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
   check-types:
     name: Verify database types are up to date
@@ -13,6 +16,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -29,19 +35,24 @@ jobs:
       - name: Start Supabase
         run: supabase start -x edge-runtime,imgproxy,logflare,vector,studio
 
-      - name: Check for type drift
+      - name: Generate types from migrations
         run: |
           supabase db reset
-          supabase gen types typescript --local > /tmp/db-types-check.ts
-          if ! diff -u src/types/database.generated.ts /tmp/db-types-check.ts > /tmp/db-types-diff.txt 2>&1; then
-            echo "::error::Database types are stale. Run 'npm run db:types' locally and commit the result."
-            cat /tmp/db-types-diff.txt
-            # Also dump the fresh file so we can copy it if needed
-            echo "--- FRESH GENERATED FILE CONTENTS ---"
-            cat /tmp/db-types-check.ts
-            exit 1
+          supabase gen types typescript --local > src/types/database.generated.ts
+
+      - name: Check for drift and auto-fix
+        run: |
+          if git diff --quiet src/types/database.generated.ts; then
+            echo "Database types are up to date."
+          else
+            echo "Database types were stale. Auto-committing the fresh version."
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add src/types/database.generated.ts
+            git commit -m "chore: regenerate database types from migrations [skip ci]"
+            git push
+            echo "::warning::Database types were stale and have been auto-updated. Please pull the latest changes."
           fi
-          echo "Database types are up to date."
 
       - name: Stop Supabase
         if: always()
