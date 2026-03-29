@@ -130,7 +130,15 @@ export async function updateDocument(documentId: string, formData: FormData) {
     entityId: updated.event_id,
     action: "document.updated",
     summary: `Updated document "${updated.name}"`,
-    details: { subject_type: "document", subject_name: updated.name },
+    details: {
+      subject_type: "document",
+      subject_name: updated.name,
+      document_type: updated.document_type,
+      visibility_scope: updated.visibility,
+      field_names: ["name", "document_type", "visibility", "notes"].filter(
+        (f) => formData.has(f)
+      ),
+    },
   });
 
   revalidatePath(`/admin/events/${updated.event_id}`);

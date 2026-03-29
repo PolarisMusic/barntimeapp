@@ -47,6 +47,12 @@ const standardParticipantActions = new Set([
   "location.created",
   "location.updated",
   "location.deleted",
+  "document.uploaded",
+  "document.updated",
+  "document.deleted",
+  "contact.assigned",
+  "contact.unassigned",
+  "contact.role_updated",
 ]);
 
 type Details = Record<string, unknown> | null;
@@ -223,8 +229,27 @@ export default async function UpdatesPage({
     for (const a of standardParticipantActions) allowedActions.add(a);
   }
 
+  // Actions where standard participants should only see participant-visible records
+  const participantVisibilityGated = new Set([
+    "document.uploaded",
+    "document.updated",
+    "document.deleted",
+    "contact.assigned",
+    "contact.unassigned",
+    "contact.role_updated",
+  ]);
+
   const visibleActivities = (activities || [])
-    .filter((a) => allowedActions.has(a.action))
+    .filter((a) => {
+      if (!allowedActions.has(a.action)) return false;
+      // Standard participants only see document/contact actions for participant-visible records
+      if (isStandard && participantVisibilityGated.has(a.action)) {
+        const details = a.details as Record<string, unknown> | null;
+        const vis = details?.visibility_scope as string | undefined;
+        return vis === "all_participants" || vis === "standard";
+      }
+      return true;
+    })
     .slice(0, 50) as unknown as Activity[];
 
   // Group by day
