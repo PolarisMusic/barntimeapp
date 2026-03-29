@@ -43,16 +43,17 @@
 -- Note: The on_auth_user_created trigger normally creates profiles automatically.
 -- If profiles already exist from trigger, this will upsert them.
 
-INSERT INTO profiles (id, email, full_name, platform_role) VALUES
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'admin@barntime.net',            'Admin User',        'staff'),
-  ('aaaaaaaa-0000-0000-0000-000000000002', 'owner@sunsetweddings.com',      'Jordan Sunset',     'standard'),
-  ('aaaaaaaa-0000-0000-0000-000000000003', 'coordinator@sunsetweddings.com', 'Casey Coordinator', 'standard'),
-  ('aaaaaaaa-0000-0000-0000-000000000004', 'viewer@sunsetweddings.com',      'Dana Viewer',       'standard'),
-  ('aaaaaaaa-0000-0000-0000-000000000005', 'vendor@bayareasound.com',        'Alex Turner',       'standard'),
-  ('aaaaaaaa-0000-0000-0000-000000000006', 'venuemanager@redwoodestate.com', 'Maria Chen',        'standard')
-ON CONFLICT (id) DO UPDATE SET
-  full_name = EXCLUDED.full_name,
-  platform_role = EXCLUDED.platform_role;
+DO $$
+BEGIN
+  INSERT INTO profiles (id, email, full_name, platform_role) VALUES
+    ('aaaaaaaa-0000-0000-0000-000000000001', 'admin@barntime.net',            'Admin User',        'staff'),
+    ('aaaaaaaa-0000-0000-0000-000000000002', 'owner@sunsetweddings.com',      'Jordan Sunset',     'standard'),
+    ('aaaaaaaa-0000-0000-0000-000000000003', 'coordinator@sunsetweddings.com', 'Casey Coordinator', 'standard'),
+    ('aaaaaaaa-0000-0000-0000-000000000004', 'viewer@sunsetweddings.com',      'Dana Viewer',       'standard'),
+    ('aaaaaaaa-0000-0000-0000-000000000005', 'vendor@bayareasound.com',        'Alex Turner',       'standard'),
+    ('aaaaaaaa-0000-0000-0000-000000000006', 'venuemanager@redwoodestate.com', 'Maria Chen',        'standard')
+  ON CONFLICT (id) DO NOTHING;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- ACCOUNTS
