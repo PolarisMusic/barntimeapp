@@ -1,0 +1,31 @@
+{
+  "name": "barntimeapp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:types": "npx supabase gen types typescript --local > src/types/database.generated.ts",
+    "db:types:check": "npx supabase gen types typescript --local > /tmp/db-types-check.ts && diff -q src/types/database.generated.ts /tmp/db-types-check.ts"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.6.1",
+    "@supabase/supabase-js": "^2.49.1",
+    "next": "^15.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "eslint": "^9.24.0",
+    "eslint-config-next": "^15.3.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.3",
+    "typescript": "^5.8.3",
+    "@tailwindcss/postcss": "^4.1.3"
+  }
+}
