@@ -19,11 +19,11 @@ jobs:
           version: latest
 
       - name: Start Supabase
-        run: supabase start -x edge-runtime,imgproxy,logflare,vector,studio
+        run: supabase start --debug -x edge-runtime,imgproxy,logflare,vector,studio
 
       - name: Generate types and check for drift
         run: |
-          supabase gen types typescript --local > /tmp/db-types-fresh.ts
+          supabase gen types typescript --local --debug > /tmp/db-types-fresh.ts
           if ! diff -q src/types/database.generated.ts /tmp/db-types-fresh.ts > /dev/null 2>&1; then
             echo "::error::Database types are stale. Run 'npm run db:types' locally and commit the result."
             diff src/types/database.generated.ts /tmp/db-types-fresh.ts || true

@@ -6,6 +6,8 @@
 -- Makes dashboard data rich enough for meaningful cards without N+1 queries.
 -- =============================================================================
 
+-- Must drop first: adds new return columns and changes language from sql to plpgsql
+DROP FUNCTION IF EXISTS my_events_dashboard();
 CREATE OR REPLACE FUNCTION my_events_dashboard()
 RETURNS TABLE (
   event_id uuid,
@@ -100,6 +102,8 @@ END;
 $$;
 
 -- Also update event_summary to return updated_at and timezone
+-- Must drop first: adds new return columns (timezone, can_manage_contacts, event_updated_at)
+DROP FUNCTION IF EXISTS event_summary(uuid);
 CREATE OR REPLACE FUNCTION event_summary(p_event_id uuid)
 RETURNS TABLE (
   event_id uuid,

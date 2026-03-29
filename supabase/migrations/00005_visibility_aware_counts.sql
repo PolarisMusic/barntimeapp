@@ -10,6 +10,8 @@
 -- the RLS policies from migration 00004.
 -- =============================================================================
 
+-- Must drop first: language changes from sql to plpgsql
+DROP FUNCTION IF EXISTS event_summary(uuid);
 CREATE OR REPLACE FUNCTION event_summary(p_event_id uuid)
 RETURNS TABLE (
   event_id uuid,

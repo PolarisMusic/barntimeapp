@@ -279,6 +279,7 @@ $$;
 -- ---------------------------------------------------------------------------
 -- 12. Rewrite event_summary() — use computed defaults and add contact/location counts
 -- ---------------------------------------------------------------------------
+DROP FUNCTION IF EXISTS event_summary(uuid);
 CREATE OR REPLACE FUNCTION event_summary(p_event_id uuid)
 RETURNS TABLE (
   event_id uuid,
