@@ -59,10 +59,10 @@ export function LinkableAccountsManager({
     if (!removing) return;
     const accountName = allowlist.find((a) => a.id === removing)?.name || "this account";
     const result = await removeLinkableAccount(ownerAccountId, removing);
-    setRemoving(null);
     if (result.error) {
       toast(result.error, "error");
     } else {
+      setRemoving(null);
       toast(`Removed ${accountName} from allowlist`, "success");
       router.refresh();
     }

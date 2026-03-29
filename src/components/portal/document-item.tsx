@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDocument, updateDocument } from "@/lib/actions/documents";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -55,16 +55,28 @@ export function DocumentItem({
   const [visibility, setVisibility] = useState(doc.visibility);
   const [notes, setNotes] = useState(doc.notes || "");
 
-  async function handleDelete() {
+  // Resync edit fields when server data changes and we're not editing
+  useEffect(() => {
+    if (!editing) {
+      setName(doc.name);
+      setDocType(doc.document_type);
+      setVisibility(doc.visibility);
+      setNotes(doc.notes || "");
+    }
+  }, [doc.name, doc.document_type, doc.visibility, doc.notes, editing]);
+
+  async function handleDelete(): Promise<boolean> {
     setDeleting(true);
     const result = await deleteDocument(doc.id);
     if (result.error) {
       toast(result.error, "error");
       setDeleting(false);
+      return false;
     } else {
       toast("Document deleted", "success");
       setDeleted(true);
       router.refresh();
+      return true;
     }
   }
 
@@ -174,8 +186,8 @@ export function DocumentItem({
         message={`Delete "${doc.name}"? This cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={async () => {
-          await handleDelete();
-          setConfirmOpen(false);
+          const ok = await handleDelete();
+          if (ok) setConfirmOpen(false);
         }}
         onCancel={() => setConfirmOpen(false)}
       />

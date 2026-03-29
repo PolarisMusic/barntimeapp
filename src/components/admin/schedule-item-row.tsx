@@ -31,12 +31,15 @@ export function ScheduleItemRow({ item }: { item: ScheduleItem }) {
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     const result = await deleteScheduleItem(item.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Schedule item deleted", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -47,7 +50,7 @@ export function ScheduleItemRow({ item }: { item: ScheduleItem }) {
         title="Delete Schedule Item"
         message={`Delete "${item.title}"?`}
         confirmLabel="Delete"
-        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleDelete(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

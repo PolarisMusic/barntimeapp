@@ -31,12 +31,15 @@ export function ServiceRow({ service }: { service: Service }) {
     }
   }
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     const result = await deleteService(service.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Service deleted", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -47,7 +50,7 @@ export function ServiceRow({ service }: { service: Service }) {
         title="Delete Service"
         message={`Delete service "${service.name}"?`}
         confirmLabel="Delete"
-        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleDelete(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

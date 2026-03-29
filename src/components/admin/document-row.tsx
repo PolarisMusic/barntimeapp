@@ -31,12 +31,15 @@ export function DocumentRow({ document }: { document: Document }) {
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     const result = await deleteDocument(document.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Document deleted", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -47,7 +50,7 @@ export function DocumentRow({ document }: { document: Document }) {
         title="Delete Document"
         message={`Delete document "${document.name}"?`}
         confirmLabel="Delete"
-        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleDelete(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>
