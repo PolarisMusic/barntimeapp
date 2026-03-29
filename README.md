@@ -219,12 +219,25 @@ supabase db push
 
 ### Type Generation
 
-Database types are generated from the schema. To regenerate:
+Database types are generated from the schema. Both scripts reset the local DB from migrations first, so the output is always deterministic.
 
 ```bash
-npm run db:types         # Requires local Supabase (supabase start)
-npm run db:types:check   # CI: fails if types are stale
+npm run db:types         # Reset DB, regenerate src/types/database.generated.ts
+npm run db:types:check   # Reset DB, regenerate to temp file, diff against committed file
 ```
+
+### After Changing Migrations or Functions
+
+Whenever you modify a migration, add a new migration, or change any SQL function return type, view, enum, or table column:
+
+1. Run `supabase start` (if not already running)
+2. Run `npm run db:types`
+3. Commit both the migration change **and** the regenerated `src/types/database.generated.ts` in the same PR
+
+**Important rules:**
+- Do not edit old migrations after they have been applied — add a new migration instead
+- Always regenerate types after schema changes; CI will reject stale types
+- The committed `database.generated.ts` must match what CI produces from the migration chain
 
 ### Storage Setup
 
