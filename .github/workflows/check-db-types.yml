@@ -19,7 +19,7 @@ jobs:
           version: latest
 
       - name: Start Supabase
-        run: supabase start --debug -x edge-runtime,imgproxy,logflare,vector,studio
+        run: supabase start --debug --no-seed -x edge-runtime,imgproxy,logflare,vector,studio
 
       - name: Generate types and check for drift
         run: |
