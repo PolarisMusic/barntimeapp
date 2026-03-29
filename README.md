@@ -77,8 +77,9 @@ supabase/
 │   ├── 00005_visibility_aware_counts.sql # Visibility-aware event_summary counts
 │   ├── 00006_dashboard_enhancements.sql  # Dashboard RPCs with location/schedule/timezone
 │   ├── 00007_fix_dashboard_dedupe.sql    # DISTINCT ON dedupe for dashboard
-│   └── 00008_linkable_accounts_and_activity_details.sql # Curated participant directory + structured activity details
-├── seed.sql                     # Example seed data template
+│   ├── 00008_linkable_accounts_and_activity_details.sql # Curated participant directory + structured activity details
+│   └── 00009_auto_create_documents_bucket.sql           # Auto-create private documents storage bucket
+├── seed.sql                     # Deterministic local-dev seed (auth users, accounts, event, activity)
 └── tests/
     └── permission_tests.sql     # Permission integration tests (data + auth context)
 ```
@@ -185,23 +186,20 @@ Account contacts can be assigned to events via `event_contact_roles`:
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 20+
 - Docker (required by Supabase CLI)
 - [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started)
 
-### Quick Start
+### Quick Start (one command)
 
 ```bash
-npm ci
-npm run local:bootstrap    # starts Supabase + runs migrations + seeds data
-cp .env.local.example .env.local
-# Fill in the values from:
-npm run local:status
-npm run dev
-# Open http://localhost:3000
+npm run setup              # installs deps, starts Supabase, seeds DB, writes .env.local
+npm run dev                # open http://localhost:3000
 ```
 
-That's it. Six test users, a seeded event, and the documents storage bucket are all created automatically.
+That's it. Six test users, a seeded event, and the documents storage bucket are all created automatically. Sign in with any test email below — get the magic link from Inbucket at http://localhost:54324.
+
+> **First time?** If you don't have `npm` yet, run `npm run setup` after cloning. The script handles `npm ci`, `supabase start`, `supabase db reset`, and `.env.local` generation in one shot. All you need pre-installed is Node.js 20+, Docker, and the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started).
 
 ### Test Accounts
 
@@ -220,6 +218,7 @@ Sign in with any of these emails using magic link. Check Inbucket at http://loca
 
 | Command | What it does |
 |---------|--------------|
+| `npm run setup` | Full setup: install deps, start Supabase, seed DB, write `.env.local` |
 | `npm run local:start` | Start local Supabase |
 | `npm run local:reset` | Reset DB, reapply migrations and seed |
 | `npm run local:bootstrap` | Start Supabase + reset DB (one command) |

@@ -2,11 +2,15 @@
   "name": "barntimeapp",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
+    "setup": "bash scripts/setup.sh",
     "local:start": "supabase start",
     "local:reset": "supabase db reset",
     "local:bootstrap": "supabase start && supabase db reset",
