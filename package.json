@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
-    "db:types": "npx supabase db reset && npx supabase gen types typescript --local > src/types/database.generated.ts",
-    "db:types:check": "npx supabase db reset && npx supabase gen types typescript --local > /tmp/db-types-check.ts && diff -q src/types/database.generated.ts /tmp/db-types-check.ts"
+    "db:types": "supabase db reset && supabase gen types typescript --local > src/types/database.generated.ts",
+    "db:types:check": "supabase db reset && supabase gen types typescript --local > /tmp/db-types-check.ts && diff -u src/types/database.generated.ts /tmp/db-types-check.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
