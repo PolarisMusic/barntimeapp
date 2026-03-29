@@ -55,16 +55,18 @@ export function DocumentItem({
   const [visibility, setVisibility] = useState(doc.visibility);
   const [notes, setNotes] = useState(doc.notes || "");
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     setDeleting(true);
     const result = await deleteDocument(doc.id);
     if (result.error) {
       toast(result.error, "error");
       setDeleting(false);
+      return false;
     } else {
       toast("Document deleted", "success");
       setDeleted(true);
       router.refresh();
+      return true;
     }
   }
 
@@ -174,8 +176,8 @@ export function DocumentItem({
         message={`Delete "${doc.name}"? This cannot be undone.`}
         confirmLabel="Delete"
         onConfirm={async () => {
-          await handleDelete();
-          setConfirmOpen(false);
+          const ok = await handleDelete();
+          if (ok) setConfirmOpen(false);
         }}
         onCancel={() => setConfirmOpen(false)}
       />

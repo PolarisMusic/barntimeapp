@@ -31,12 +31,15 @@ export function EventContactRow({
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleRemove() {
+  async function handleRemove(): Promise<boolean> {
     const result = await removeContactFromEvent(eventId, assignmentId);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Contact removed", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -47,7 +50,7 @@ export function EventContactRow({
         title="Remove Contact"
         message={`Remove "${contactName}" from this event?`}
         confirmLabel="Remove"
-        onConfirm={async () => { await handleRemove(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleRemove(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

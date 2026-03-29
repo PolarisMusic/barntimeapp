@@ -22,6 +22,13 @@ export function InlineEditField({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
+  // Resync draft when the server value changes (e.g. after refresh)
+  useEffect(() => {
+    if (!editing) {
+      setDraft(value);
+    }
+  }, [value, editing]);
+
   useEffect(() => {
     if (editing && inputRef.current) {
       inputRef.current.focus();

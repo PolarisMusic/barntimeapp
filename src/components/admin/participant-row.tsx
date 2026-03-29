@@ -21,12 +21,15 @@ export function ParticipantRow({ eventId, accountId, account, roleLabel, visibil
   const [updating, setUpdating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleUnlink() {
+  async function handleUnlink(): Promise<boolean> {
     const result = await unlinkParticipantAccount(eventId, accountId);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Participant removed", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -62,7 +65,7 @@ export function ParticipantRow({ eventId, accountId, account, roleLabel, visibil
         title="Remove Participant"
         message={`Remove "${account.name}" from this event?`}
         confirmLabel="Remove"
-        onConfirm={async () => { await handleUnlink(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleUnlink(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div className="flex items-center gap-4">
@@ -73,6 +76,7 @@ export function ParticipantRow({ eventId, accountId, account, roleLabel, visibil
           <p className="text-xs text-gray-500">{account.type}</p>
         </div>
         <input
+          key={roleLabel ?? ""}
           type="text"
           defaultValue={roleLabel || ""}
           placeholder="Role label"

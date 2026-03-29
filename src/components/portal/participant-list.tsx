@@ -188,17 +188,19 @@ function ParticipantItem({
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleUnlink() {
+  async function handleUnlink(): Promise<boolean> {
     setUpdating(true);
     setError(null);
     const result = await unlinkParticipantAccount(eventId, participant.accountId);
     if (result.error) {
       setError(result.error);
       setUpdating(false);
+      return false;
     } else {
       toast(`Removed ${participant.accountName}`, "success");
       setRemoved(true);
       router.refresh();
+      return true;
     }
   }
 
@@ -241,8 +243,8 @@ function ParticipantItem({
         message={`Remove "${participant.accountName}" from this event?`}
         confirmLabel="Remove"
         onConfirm={async () => {
-          await handleUnlink();
-          setConfirmOpen(false);
+          const ok = await handleUnlink();
+          if (ok) setConfirmOpen(false);
         }}
         onCancel={() => setConfirmOpen(false)}
       />
@@ -253,6 +255,7 @@ function ParticipantItem({
             <p className="text-xs text-gray-500">{participant.accountType}</p>
           </div>
           <input
+            key={participant.roleLabel ?? ""}
             type="text"
             defaultValue={participant.roleLabel || ""}
             placeholder="Role label"

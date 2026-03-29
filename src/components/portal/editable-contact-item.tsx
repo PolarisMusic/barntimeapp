@@ -35,15 +35,17 @@ export function EditableContactItem({
   const [visUpdating, setVisUpdating] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleRemove() {
+  async function handleRemove(): Promise<boolean> {
     setRemoving(true);
     const result = await removeContactFromEvent(eventId, assignment.id);
     if (result.error) {
       toast(result.error, "error");
       setRemoving(false);
+      return false;
     } else {
       setRemoved(true);
       router.refresh();
+      return true;
     }
   }
 
@@ -68,8 +70,8 @@ export function EditableContactItem({
         message={`Remove ${assignment.contact.name} from this event?`}
         confirmLabel="Remove"
         onConfirm={async () => {
-          await handleRemove();
-          setConfirmOpen(false);
+          const ok = await handleRemove();
+          if (ok) setConfirmOpen(false);
         }}
         onCancel={() => setConfirmOpen(false)}
       />

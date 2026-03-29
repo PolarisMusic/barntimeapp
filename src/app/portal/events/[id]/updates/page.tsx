@@ -138,8 +138,21 @@ function formatActivity(action: string, details: Details, summary: string | null
       if (name && typeLabel && typeLabel !== "document") return `Uploaded ${typeLabel} "${name}"`;
       return name ? `Uploaded "${name}"` : "Uploaded a document";
     }
-    case "document.updated":
+    case "document.updated": {
+      const fieldLabelMap: Record<string, string> = {
+        name: "name",
+        document_type: "type",
+        visibility: "visibility",
+        notes: "notes",
+      };
+      const changedLabels = fields
+        .map((f) => fieldLabelMap[f])
+        .filter(Boolean);
+      if (name && changedLabels.length > 0) {
+        return `Updated ${changedLabels.join(", ")} on "${name}"`;
+      }
       return name ? `Updated document "${name}"` : "Updated a document";
+    }
     case "document.deleted":
       return name ? `Removed document "${name}"` : "Removed a document";
     case "contact.assigned": {

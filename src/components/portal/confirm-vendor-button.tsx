@@ -11,13 +11,15 @@ export function PortalConfirmVendorButton({ serviceId }: { serviceId: string }) 
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleConfirm() {
+  async function handleConfirm(): Promise<boolean> {
     const result = await confirmVendor(serviceId);
     if (result.error) {
       toast(result.error, "error");
+      return false;
     } else {
       toast("Vendor confirmed", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -30,8 +32,8 @@ export function PortalConfirmVendorButton({ serviceId }: { serviceId: string }) 
         confirmLabel="Confirm"
         variant="default"
         onConfirm={async () => {
-          await handleConfirm();
-          setConfirmOpen(false);
+          const ok = await handleConfirm();
+          if (ok) setConfirmOpen(false);
         }}
         onCancel={() => setConfirmOpen(false)}
       />

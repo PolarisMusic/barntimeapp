@@ -100,12 +100,15 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
     await updateMemberRole(membership.id, formData);
   }
 
-  async function handleRemove() {
+  async function handleRemove(): Promise<boolean> {
     const result = await removeMember(membership.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Member removed", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -138,7 +141,7 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
         title="Remove Member"
         message={`Remove ${profile.email} from this account?`}
         confirmLabel="Remove"
-        onConfirm={async () => { await handleRemove(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleRemove(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div className="flex items-center justify-between">

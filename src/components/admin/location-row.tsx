@@ -20,12 +20,15 @@ export function LocationRow({ location }: { location: Location }) {
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     const result = await deleteLocation(location.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Location deleted", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -36,7 +39,7 @@ export function LocationRow({ location }: { location: Location }) {
         title="Delete Location"
         message={`Delete location "${location.name}"?`}
         confirmLabel="Delete"
-        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleDelete(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

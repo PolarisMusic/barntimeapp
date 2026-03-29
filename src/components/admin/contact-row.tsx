@@ -20,12 +20,15 @@ export function ContactRow({ contact }: { contact: Contact }) {
   const { toast } = useToast();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  async function handleDelete() {
+  async function handleDelete(): Promise<boolean> {
     const result = await deleteContact(contact.id);
     if (result?.error) {
       toast(result.error, "error");
+      return false;
     } else {
+      toast("Contact deleted", "success");
       router.refresh();
+      return true;
     }
   }
 
@@ -36,7 +39,7 @@ export function ContactRow({ contact }: { contact: Contact }) {
         title="Delete Contact"
         message={`Delete contact "${contact.name}"?`}
         confirmLabel="Delete"
-        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
+        onConfirm={async () => { const ok = await handleDelete(); if (ok) setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>
