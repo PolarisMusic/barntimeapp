@@ -67,9 +67,9 @@ export function EditableContactItem({
         title="Remove Contact"
         message={`Remove ${assignment.contact.name} from this event?`}
         confirmLabel="Remove"
-        onConfirm={() => {
+        onConfirm={async () => {
+          await handleRemove();
           setConfirmOpen(false);
-          handleRemove();
         }}
         onCancel={() => setConfirmOpen(false)}
       />

@@ -47,7 +47,7 @@ export function EventContactRow({
         title="Remove Contact"
         message={`Remove "${contactName}" from this event?`}
         confirmLabel="Remove"
-        onConfirm={() => { setConfirmOpen(false); handleRemove(); }}
+        onConfirm={async () => { await handleRemove(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

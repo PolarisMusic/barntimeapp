@@ -47,7 +47,7 @@ export function DocumentRow({ document }: { document: Document }) {
         title="Delete Document"
         message={`Delete document "${document.name}"?`}
         confirmLabel="Delete"
-        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

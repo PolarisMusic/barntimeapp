@@ -10,26 +10,16 @@ import {
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast-provider";
 
-type Participant = {
-  accountId: string;
-  accountName: string;
-  accountType: string;
-  roleLabel: string | null;
-  visibility: string;
-};
-
-type Account = { id: string; name: string; type: string };
-
-export function PortalParticipantList({
+// Top-level wrapper so the add form can access toast
+function ParticipantAddForm({
   eventId,
-  participants,
   availableAccounts,
 }: {
   eventId: string;
-  participants: Participant[];
   availableAccounts: Account[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [showAdd, setShowAdd] = useState(false);
   const [addAccountId, setAddAccountId] = useState("");
   const [addRoleLabel, setAddRoleLabel] = useState("");
@@ -52,6 +42,8 @@ export function PortalParticipantList({
     if (result.error) {
       setError(result.error);
     } else {
+      const name = availableAccounts.find((a) => a.id === addAccountId)?.name;
+      toast(name ? `Added ${name} as participant` : "Participant added", "success");
       setShowAdd(false);
       setAddAccountId("");
       setAddRoleLabel("");
@@ -60,6 +52,101 @@ export function PortalParticipantList({
     }
   }
 
+  if (!showAdd) {
+    return availableAccounts.length > 0 ? (
+      <div className="px-4 py-3">
+        <button
+          onClick={() => setShowAdd(true)}
+          className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+        >
+          Add Participant
+        </button>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <form onSubmit={handleAdd} className="border-t border-gray-200 px-4 py-4">
+      <div className="space-y-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Account</label>
+          <select
+            value={addAccountId}
+            onChange={(e) => setAddAccountId(e.target.value)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">Select account...</option>
+            {availableAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name} ({a.type})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Role Label</label>
+            <input
+              type="text"
+              value={addRoleLabel}
+              onChange={(e) => setAddRoleLabel(e.target.value)}
+              placeholder="e.g. Sound Vendor"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Visibility</label>
+            <select
+              value={addVisibility}
+              onChange={(e) => setAddVisibility(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="limited">Limited</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={submitting || !addAccountId}
+            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            {submitting ? "Adding..." : "Add Participant"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setShowAdd(false); setError(null); }}
+            className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+          {error && <span className="text-xs text-red-600">{error}</span>}
+        </div>
+      </div>
+    </form>
+  );
+}
+
+type Participant = {
+  accountId: string;
+  accountName: string;
+  accountType: string;
+  roleLabel: string | null;
+  visibility: string;
+};
+
+type Account = { id: string; name: string; type: string };
+
+export function PortalParticipantList({
+  eventId,
+  participants,
+  availableAccounts,
+}: {
+  eventId: string;
+  participants: Participant[];
+  availableAccounts: Account[];
+}) {
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
       {participants.length > 0 ? (
@@ -82,78 +169,7 @@ export function PortalParticipantList({
         </div>
       )}
 
-      {showAdd ? (
-        <form onSubmit={handleAdd} className="border-t border-gray-200 px-4 py-4">
-          <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Account</label>
-              <select
-                value={addAccountId}
-                onChange={(e) => setAddAccountId(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select account...</option>
-                {availableAccounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.type})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Role Label</label>
-                <input
-                  type="text"
-                  value={addRoleLabel}
-                  onChange={(e) => setAddRoleLabel(e.target.value)}
-                  placeholder="e.g. Sound Vendor"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Visibility</label>
-                <select
-                  value={addVisibility}
-                  onChange={(e) => setAddVisibility(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="limited">Limited</option>
-                  <option value="standard">Standard</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={submitting || !addAccountId}
-                className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-              >
-                {submitting ? "Adding..." : "Add Participant"}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowAdd(false); setError(null); }}
-                className="rounded-md px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-100"
-              >
-                Cancel
-              </button>
-              {error && <span className="text-xs text-red-600">{error}</span>}
-            </div>
-          </div>
-        </form>
-      ) : (
-        availableAccounts.length > 0 && (
-          <div className="px-4 py-3">
-            <button
-              onClick={() => setShowAdd(true)}
-              className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-            >
-              Add Participant
-            </button>
-          </div>
-        )
-      )}
+      <ParticipantAddForm eventId={eventId} availableAccounts={availableAccounts} />
     </div>
   );
 }
@@ -180,6 +196,7 @@ function ParticipantItem({
       setError(result.error);
       setUpdating(false);
     } else {
+      toast(`Removed ${participant.accountName}`, "success");
       setRemoved(true);
       router.refresh();
     }
@@ -193,6 +210,7 @@ function ParticipantItem({
     if (result.error) {
       toast(result.error, "error");
     } else {
+      toast(`Updated ${participant.accountName} visibility`, "success");
       router.refresh();
     }
   }
@@ -207,6 +225,7 @@ function ParticipantItem({
       if (result.error) {
         toast(result.error, "error");
       } else {
+        toast(`Updated ${participant.accountName} role`, "success");
         router.refresh();
       }
     }
@@ -221,9 +240,9 @@ function ParticipantItem({
         title="Remove Participant"
         message={`Remove "${participant.accountName}" from this event?`}
         confirmLabel="Remove"
-        onConfirm={() => {
+        onConfirm={async () => {
+          await handleUnlink();
           setConfirmOpen(false);
-          handleUnlink();
         }}
         onCancel={() => setConfirmOpen(false)}
       />

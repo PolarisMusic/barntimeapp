@@ -80,6 +80,7 @@ export function DocumentItem({
     if (result.error) {
       setError(result.error);
     } else {
+      toast("Document updated", "success");
       setEditing(false);
       router.refresh();
     }
@@ -171,9 +172,9 @@ export function DocumentItem({
         title="Delete Document"
         message={`Delete "${doc.name}"? This cannot be undone.`}
         confirmLabel="Delete"
-        onConfirm={() => {
+        onConfirm={async () => {
+          await handleDelete();
           setConfirmOpen(false);
-          handleDelete();
         }}
         onCancel={() => setConfirmOpen(false)}
       />

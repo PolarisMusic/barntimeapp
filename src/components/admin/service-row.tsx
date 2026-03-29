@@ -47,7 +47,7 @@ export function ServiceRow({ service }: { service: Service }) {
         title="Delete Service"
         message={`Delete service "${service.name}"?`}
         confirmLabel="Delete"
-        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

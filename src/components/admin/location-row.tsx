@@ -36,7 +36,7 @@ export function LocationRow({ location }: { location: Location }) {
         title="Delete Location"
         message={`Delete location "${location.name}"?`}
         confirmLabel="Delete"
-        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

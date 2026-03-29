@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { uploadDocument } from "@/lib/actions/documents";
+import { useToast } from "@/components/ui/toast-provider";
 
 const documentTypes = [
   { value: "run_sheet", label: "Run Sheet" },
@@ -16,6 +17,7 @@ const documentTypes = [
 
 export function DocumentUploadForm({ eventId }: { eventId: string }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export function DocumentUploadForm({ eventId }: { eventId: string }) {
     if (result.error) {
       setError(result.error);
     } else {
+      toast("Document uploaded", "success");
       formRef.current.reset();
       setOpen(false);
       router.refresh();

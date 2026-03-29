@@ -62,7 +62,7 @@ export function ParticipantRow({ eventId, accountId, account, roleLabel, visibil
         title="Remove Participant"
         message={`Remove "${account.name}" from this event?`}
         confirmLabel="Remove"
-        onConfirm={() => { setConfirmOpen(false); handleUnlink(); }}
+        onConfirm={async () => { await handleUnlink(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div className="flex items-center gap-4">

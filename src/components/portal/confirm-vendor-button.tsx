@@ -29,9 +29,9 @@ export function PortalConfirmVendorButton({ serviceId }: { serviceId: string }) 
         message="Confirm this vendor for the event?"
         confirmLabel="Confirm"
         variant="default"
-        onConfirm={() => {
+        onConfirm={async () => {
+          await handleConfirm();
           setConfirmOpen(false);
-          handleConfirm();
         }}
         onCancel={() => setConfirmOpen(false)}
       />

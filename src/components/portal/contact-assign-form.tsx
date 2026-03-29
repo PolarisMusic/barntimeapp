@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { assignContactToEvent } from "@/lib/actions/contacts";
+import { useToast } from "@/components/ui/toast-provider";
 
 export function ContactAssignForm({
   eventId,
@@ -12,6 +13,7 @@ export function ContactAssignForm({
   availableContacts: { id: string; name: string; role_label: string | null; accountName?: string }[];
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState("");
   const [roleLabel, setRoleLabel] = useState("");
@@ -38,6 +40,8 @@ export function ContactAssignForm({
     if (result.error) {
       setError(result.error);
     } else {
+      const name = availableContacts.find((c) => c.id === selectedContactId)?.name;
+      toast(name ? `Assigned ${name}` : "Contact assigned", "success");
       setSelectedContactId("");
       setRoleLabel("");
       setVisibility("owner_only");

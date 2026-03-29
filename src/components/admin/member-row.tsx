@@ -138,7 +138,7 @@ export function MemberRow({ membership, profile, permissions }: MemberRowProps) 
         title="Remove Member"
         message={`Remove ${profile.email} from this account?`}
         confirmLabel="Remove"
-        onConfirm={() => { setConfirmOpen(false); handleRemove(); }}
+        onConfirm={async () => { await handleRemove(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div className="flex items-center justify-between">

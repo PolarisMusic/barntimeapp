@@ -36,7 +36,7 @@ export function ContactRow({ contact }: { contact: Contact }) {
         title="Delete Contact"
         message={`Delete contact "${contact.name}"?`}
         confirmLabel="Delete"
-        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>

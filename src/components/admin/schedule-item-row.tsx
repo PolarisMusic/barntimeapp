@@ -47,7 +47,7 @@ export function ScheduleItemRow({ item }: { item: ScheduleItem }) {
         title="Delete Schedule Item"
         message={`Delete "${item.title}"?`}
         confirmLabel="Delete"
-        onConfirm={() => { setConfirmOpen(false); handleDelete(); }}
+        onConfirm={async () => { await handleDelete(); setConfirmOpen(false); }}
         onCancel={() => setConfirmOpen(false)}
       />
       <div>
