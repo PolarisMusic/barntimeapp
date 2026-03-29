@@ -7,6 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
+    "local:start": "supabase start",
+    "local:reset": "supabase db reset",
+    "local:bootstrap": "supabase start && supabase db reset",
+    "local:status": "supabase status",
     "db:types": "supabase db reset && supabase gen types typescript --local > src/types/database.generated.ts",
     "db:types:check": "supabase db reset && supabase gen types typescript --local > /tmp/db-types-check.ts && diff -u src/types/database.generated.ts /tmp/db-types-check.ts"
   },

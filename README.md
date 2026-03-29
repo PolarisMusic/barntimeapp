@@ -181,40 +181,58 @@ Account contacts can be assigned to events via `event_contact_roles`:
 - RLS enforces visibility: participants only see `all_participants` contacts
 - This is separate from the account contact directory
 
-## Setup
+## Local Development Setup
 
 ### Prerequisites
 
 - Node.js 22+
-- A Supabase project
+- Docker (required by Supabase CLI)
+- [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started)
+
+### Quick Start
+
+```bash
+npm ci
+npm run local:bootstrap    # starts Supabase + runs migrations + seeds data
+cp .env.local.example .env.local
+# Fill in the values from:
+npm run local:status
+npm run dev
+# Open http://localhost:3000
+```
+
+That's it. Six test users, a seeded event, and the documents storage bucket are all created automatically.
+
+### Test Accounts
+
+Sign in with any of these emails using magic link. Check Inbucket at http://localhost:54324 to get the link.
+
+| Email | Role | Access |
+|-------|------|--------|
+| `admin@barntime.net` | Staff | Full admin access at `/admin` |
+| `owner@sunsetweddings.com` | Account Owner (Sunset Weddings) | Full owner access to the seeded event |
+| `coordinator@sunsetweddings.com` | Event Coordinator (Sunset Weddings) | Can edit schedule, services, contacts, documents |
+| `viewer@sunsetweddings.com` | Viewer (Sunset Weddings) | Read-only access to all sections |
+| `vendor@bayareasound.com` | Standard Participant (Bay Area Sound) | Can see schedule, locations, all services |
+| `venuemanager@redwoodestate.com` | Limited Participant (Redwood Estate) | Own services only, no schedule/locations |
+
+### Local Dev Scripts
+
+| Command | What it does |
+|---------|--------------|
+| `npm run local:start` | Start local Supabase |
+| `npm run local:reset` | Reset DB, reapply migrations and seed |
+| `npm run local:bootstrap` | Start Supabase + reset DB (one command) |
+| `npm run local:status` | Print local Supabase URLs and keys |
 
 ### Environment Variables
 
-Copy `.env.local.example` to `.env.local` and fill in:
+Copy `.env.local.example` to `.env.local` and fill in values from `npm run local:status`:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
-### Database Setup
-
-Run **all migrations in order** against your Supabase project:
-
-```bash
-# Via Supabase CLI
-supabase db push
-
-# Or run each migration manually in the SQL Editor:
-# 1. supabase/migrations/00001_initial_schema.sql
-# 2. supabase/migrations/00002_permission_hardening.sql
-# 3. supabase/migrations/00003_permission_model_v2.sql
-# 4. supabase/migrations/00004_unify_permission_checks.sql
-# 5. supabase/migrations/00005_visibility_aware_counts.sql
-# 6. supabase/migrations/00006_dashboard_enhancements.sql
-# 7. supabase/migrations/00007_fix_dashboard_dedupe.sql
-# 8. supabase/migrations/00008_linkable_accounts_and_activity_details.sql
+NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key-from-supabase-status>
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key-from-supabase-status>
 ```
 
 ### Type Generation
@@ -239,38 +257,11 @@ Whenever you modify a migration, add a new migration, or change any SQL function
 - Always regenerate types after schema changes; CI will reject stale types
 - The committed `database.generated.ts` must match what CI produces from the migration chain
 
-### Storage Setup
-
-Create a storage bucket named `documents` in your Supabase project:
-
-1. Go to Storage in the Supabase dashboard
-2. Create a new bucket named `documents`
-3. Set it to private (not public)
-4. The app uses signed URLs for secure download access
-
-### Development
-
-```bash
-npm install
-npm run dev
-```
-
 ### Build
 
 ```bash
 npm run build
 npm start
-```
-
-### Create First Admin
-
-After deploying:
-
-1. Sign in with email magic link
-2. In the Supabase SQL Editor, promote your profile:
-
-```sql
-UPDATE profiles SET platform_role = 'platform_admin' WHERE email = 'your@email.com';
 ```
 
 ### Running Permission Tests
