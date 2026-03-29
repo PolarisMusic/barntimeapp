@@ -30,7 +30,18 @@ jobs:
         run: supabase start -x edge-runtime,imgproxy,logflare,vector,studio
 
       - name: Check for type drift
-        run: npm run db:types:check
+        run: |
+          supabase db reset
+          supabase gen types typescript --local > /tmp/db-types-check.ts
+          if ! diff -u src/types/database.generated.ts /tmp/db-types-check.ts > /tmp/db-types-diff.txt 2>&1; then
+            echo "::error::Database types are stale. Run 'npm run db:types' locally and commit the result."
+            cat /tmp/db-types-diff.txt
+            # Also dump the fresh file so we can copy it if needed
+            echo "--- FRESH GENERATED FILE CONTENTS ---"
+            cat /tmp/db-types-check.ts
+            exit 1
+          fi
+          echo "Database types are up to date."
 
       - name: Stop Supabase
         if: always()
