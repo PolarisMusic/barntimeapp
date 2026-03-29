@@ -687,7 +687,6 @@ export type Database = {
           event_updated_at: string
           is_owner: boolean
           location_count: number
-          notes: string
           owner_account_id: string
           owner_account_name: string
           participant_count: number
