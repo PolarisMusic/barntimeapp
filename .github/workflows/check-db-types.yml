@@ -19,7 +19,7 @@ jobs:
           version: latest
 
       - name: Start Supabase
-        run: supabase start -x realtime,storage-api,imgproxy,inbucket,postgrest-exporter,pgadmin-schema-diff,pgadmin-data-diff
+        run: supabase start -x edge-runtime,imgproxy,logflare,vector,studio
 
       - name: Generate types and check for drift
         run: |

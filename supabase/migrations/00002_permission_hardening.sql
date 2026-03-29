@@ -114,6 +114,9 @@ UPDATE event_documents
   SET visibility = 'owner_only'
   WHERE visibility = 'specific_accounts';
 
+-- Drop policy that depends on the visibility column before altering the type
+DROP POLICY IF EXISTS "Owner-account members can view owner-only documents" ON event_documents;
+
 -- Recreate the enum without specific_accounts
 -- Postgres doesn't support removing enum values, so we rename + recreate
 ALTER TYPE document_visibility RENAME TO document_visibility_old;
@@ -191,7 +194,7 @@ AS $$
 $$;
 
 -- Update document RLS to properly handle the two-mode visibility
-DROP POLICY IF EXISTS "Owner-account members can view owner-only documents" ON event_documents;
+-- (The old policy was already dropped in STAGE 5 before the column type alter)
 
 CREATE POLICY "Users can view documents based on visibility"
   ON event_documents FOR SELECT
