@@ -2,11 +2,20 @@
   "name": "barntimeapp",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
+    "setup": "node scripts/setup.mjs",
+    "doctor": "node scripts/doctor.mjs",
+    "local:start": "supabase start",
+    "local:reset": "supabase db reset",
+    "local:bootstrap": "supabase start && supabase db reset",
+    "local:status": "supabase status",
     "db:types": "supabase db reset && supabase gen types typescript --local > src/types/database.generated.ts",
     "db:types:check": "supabase db reset && supabase gen types typescript --local > /tmp/db-types-check.ts && diff -u src/types/database.generated.ts /tmp/db-types-check.ts"
   },
@@ -26,6 +35,7 @@
     "eslint": "^9.24.0",
     "eslint-config-next": "^15.3.0",
     "postcss": "^8.5.3",
+    "supabase": "^2.84.4",
     "tailwindcss": "^4.1.3",
     "typescript": "^5.8.3"
   }
