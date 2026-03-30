@@ -68,6 +68,11 @@ src/
 │   └── database.generated.ts    # Generated types (npm run db:types)
 └── middleware.ts                 # Next.js middleware (auth redirect)
 
+scripts/
+├── preflight.mjs              # Shared preflight checks (Node, Docker, CLI, files)
+├── setup.mjs                  # One-command local bootstrap (npm run setup)
+└── doctor.mjs                 # Diagnostic check (npm run doctor)
+
 supabase/
 ├── migrations/
 │   ├── 00001_initial_schema.sql    # Tables, enums, RLS, helpers, read models
@@ -187,19 +192,19 @@ Account contacts can be assigned to events via `event_contact_roles`:
 ### Prerequisites
 
 - Node.js 20+
-- Docker (required by Supabase CLI)
-- [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started)
+- Docker Desktop (running)
 
-### Quick Start (one command)
+That's it. The Supabase CLI is vendored as a project dependency — no global install needed.
+
+### Quick Start
 
 ```bash
-npm run setup              # installs deps, starts Supabase, seeds DB, writes .env.local
+npm ci                     # install dependencies (includes Supabase CLI)
+npm run setup              # starts Supabase, seeds DB, writes .env.local
 npm run dev                # open http://localhost:3000
 ```
 
-That's it. Six test users, a seeded event, and the documents storage bucket are all created automatically. Sign in with any test email below — get the magic link from Inbucket at http://localhost:54324.
-
-> **First time?** If you don't have `npm` yet, run `npm run setup` after cloning. The script handles `npm ci`, `supabase start`, `supabase db reset`, and `.env.local` generation in one shot. All you need pre-installed is Node.js 20+, Docker, and the [Supabase CLI](https://supabase.com/docs/guides/cli/getting-started).
+Six test users, a seeded event, and the documents storage bucket are all created automatically. Sign in with any test email below — get the magic link from Inbucket at http://localhost:54324.
 
 ### Test Accounts
 
@@ -218,15 +223,30 @@ Sign in with any of these emails using magic link. Check Inbucket at http://loca
 
 | Command | What it does |
 |---------|--------------|
-| `npm run setup` | Full setup: install deps, start Supabase, seed DB, write `.env.local` |
+| `npm run setup` | Preflight check, start Supabase, seed DB, write `.env.local` |
+| `npm run doctor` | Run preflight checks without changing anything (for debugging) |
 | `npm run local:start` | Start local Supabase |
 | `npm run local:reset` | Reset DB, reapply migrations and seed |
 | `npm run local:bootstrap` | Start Supabase + reset DB (one command) |
 | `npm run local:status` | Print local Supabase URLs and keys |
 
-### Environment Variables
+### Troubleshooting
 
-Copy `.env.local.example` to `.env.local` and fill in values from `npm run local:status`:
+If something isn't working, run:
+
+```bash
+npm run doctor
+```
+
+This checks Node version, Docker status, Supabase CLI, and required files. Paste the output when asking for help.
+
+If `.env.local` was not written correctly, you can regenerate it manually:
+
+```bash
+npm run local:status       # shows all local URLs and keys
+```
+
+Copy the values into `.env.local`:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
