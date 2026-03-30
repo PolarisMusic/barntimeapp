@@ -22,6 +22,10 @@
 -- -------------------------------------------------------------------------
 -- These insert directly into Supabase auth tables so the users exist
 -- immediately after reset. Sign in via magic link through Inbucket.
+--
+-- NOTE: For Supabase-managed auth tables, use bare ON CONFLICT DO NOTHING
+-- instead of targeting specific columns. The upstream auth schema may
+-- change its unique constraints between Supabase versions.
 
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -46,7 +50,7 @@ INSERT INTO auth.users (
   ('aaaaaaaa-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'venuemanager@redwoodestate.com', '', now(), now(), now(),
    '{"provider":"email","providers":["email"]}', '{"full_name":"Maria Chen"}', '', false)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO auth.identities (
   id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
@@ -63,7 +67,7 @@ INSERT INTO auth.identities (
    '{"sub":"aaaaaaaa-0000-0000-0000-000000000005","email":"vendor@bayareasound.com"}', now(), now(), now()),
   ('aaaaaaaa-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000006', 'venuemanager@redwoodestate.com', 'email',
    '{"sub":"aaaaaaaa-0000-0000-0000-000000000006","email":"venuemanager@redwoodestate.com"}', now(), now(), now())
-ON CONFLICT (id, provider) DO NOTHING;
+ON CONFLICT DO NOTHING;
 
 -- -------------------------------------------------------------------------
 -- PROFILES (auto-created by trigger, but we upsert to set platform_role)
