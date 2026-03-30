@@ -191,20 +191,23 @@ Account contacts can be assigned to events via `event_contact_roles`:
 
 ### Prerequisites
 
-- Node.js 20+
-- Docker Desktop (running)
+Install these before cloning the repo:
 
-That's it. The Supabase CLI is vendored as a project dependency — no global install needed.
+1. **Node.js 20+** — [nodejs.org](https://nodejs.org)
+2. **Docker Desktop** — [docker.com](https://www.docker.com/products/docker-desktop) — must be running before setup
+
+The Supabase CLI is vendored as a project dependency — no global install needed.
 
 ### Quick Start
 
 ```bash
+git clone <repo-url> && cd barntimeapp
 npm ci                     # install dependencies (includes Supabase CLI)
-npm run setup              # starts Supabase, seeds DB, writes .env.local
+npm run setup              # preflight check → start Supabase → seed DB → write .env.local
 npm run dev                # open http://localhost:3000
 ```
 
-Six test users, a seeded event, and the documents storage bucket are all created automatically. Sign in with any test email below — get the magic link from Inbucket at http://localhost:54324.
+After `npm run setup`, six test users, a seeded event, and the documents storage bucket all exist automatically. Sign in with any test email below — get the magic link from Inbucket at http://localhost:54324.
 
 ### Test Accounts
 
@@ -253,6 +256,10 @@ NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key-from-supabase-status>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key-from-supabase-status>
 ```
+
+### Sharing the Project
+
+If distributing as a ZIP, always exclude `node_modules/` and `.env.local`. Recipients run `npm ci` → `npm run setup` to get a working environment. The `.gitignore` already excludes both from version control.
 
 ### Type Generation
 
