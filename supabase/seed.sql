@@ -29,44 +29,53 @@
 
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password,
-  email_confirmed_at, created_at, updated_at,
-  raw_app_meta_data, raw_user_meta_data, confirmation_token, is_super_admin
+  email_confirmed_at, recovery_sent_at, last_sign_in_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token,
+  is_super_admin
 ) VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'admin@barntime.net', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Admin User"}', '', false),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Admin User"}',
+   now(), now(), '', '', '', '', false),
   ('aaaaaaaa-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'owner@sunsetweddings.com', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Jordan Sunset"}', '', false),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Jordan Sunset"}',
+   now(), now(), '', '', '', '', false),
   ('aaaaaaaa-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'coordinator@sunsetweddings.com', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Casey Coordinator"}', '', false),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Casey Coordinator"}',
+   now(), now(), '', '', '', '', false),
   ('aaaaaaaa-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'viewer@sunsetweddings.com', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Dana Viewer"}', '', false),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Dana Viewer"}',
+   now(), now(), '', '', '', '', false),
   ('aaaaaaaa-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'vendor@bayareasound.com', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Alex Turner"}', '', false),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Alex Turner"}',
+   now(), now(), '', '', '', '', false),
   ('aaaaaaaa-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
    'venuemanager@redwoodestate.com', '', now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{"full_name":"Maria Chen"}', '', false)
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Maria Chen"}',
+   now(), now(), '', '', '', '', false)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO auth.identities (
   id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at
 ) VALUES
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'admin@barntime.net', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","email":"admin@barntime.net"}', now(), now(), now()),
-  ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', 'owner@sunsetweddings.com', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000002","email":"owner@sunsetweddings.com"}', now(), now(), now()),
-  ('aaaaaaaa-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000003', 'coordinator@sunsetweddings.com', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000003","email":"coordinator@sunsetweddings.com"}', now(), now(), now()),
-  ('aaaaaaaa-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000004', 'viewer@sunsetweddings.com', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000004","email":"viewer@sunsetweddings.com"}', now(), now(), now()),
-  ('aaaaaaaa-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000005', 'vendor@bayareasound.com', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000005","email":"vendor@bayareasound.com"}', now(), now(), now()),
-  ('aaaaaaaa-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000006', 'venuemanager@redwoodestate.com', 'email',
-   '{"sub":"aaaaaaaa-0000-0000-0000-000000000006","email":"venuemanager@redwoodestate.com"}', now(), now(), now())
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000001","email":"admin@barntime.net","email_verified":true}', now(), now(), now()),
+  ('aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000002', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000002","email":"owner@sunsetweddings.com","email_verified":true}', now(), now(), now()),
+  ('aaaaaaaa-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000003', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000003","email":"coordinator@sunsetweddings.com","email_verified":true}', now(), now(), now()),
+  ('aaaaaaaa-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000004', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000004","email":"viewer@sunsetweddings.com","email_verified":true}', now(), now(), now()),
+  ('aaaaaaaa-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000005', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000005","email":"vendor@bayareasound.com","email_verified":true}', now(), now(), now()),
+  ('aaaaaaaa-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000006', 'email',
+   '{"sub":"aaaaaaaa-0000-0000-0000-000000000006","email":"venuemanager@redwoodestate.com","email_verified":true}', now(), now(), now())
 ON CONFLICT DO NOTHING;
 
 -- -------------------------------------------------------------------------
