@@ -7,7 +7,7 @@
 // Usage:  node scripts/doctor.mjs   (or: npm run doctor)
 // ---------------------------------------------------------------------------
 import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { printPreflight, SUPABASE_BIN, ROOT } from "./preflight.mjs";
 
@@ -22,6 +22,26 @@ console.log("Environment:");
 const envPath = resolve(ROOT, ".env.local");
 if (existsSync(envPath)) {
   console.log("  .env.local      exists");
+  const envContents = readFileSync(envPath, "utf-8");
+  const stripeKeys = [
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_APP_URL",
+  ];
+  const missingStripe = stripeKeys.filter((k) => {
+    const m = envContents.match(new RegExp(`^${k}\\s*=\\s*(.+)$`, "m"));
+    if (!m) return true;
+    const v = m[1].trim();
+    return !v || v.startsWith("<");
+  });
+  if (missingStripe.length === 0) {
+    console.log("  Stripe env      configured");
+  } else {
+    console.log(
+      `  Stripe env      not configured (${missingStripe.join(", ")}) — ticketing flows will not work`
+    );
+  }
 } else {
   console.log("  .env.local      MISSING — run `npm run setup` to generate it");
 }

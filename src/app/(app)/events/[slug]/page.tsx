@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth";
 import { extractYouTubeId, youTubeThumbnailUrl } from "@/lib/youtube";
+import { getRevealedAddress } from "@/lib/address-reveal";
+import { BuyTicketForm } from "@/components/app/buy-ticket-form";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +53,32 @@ export default async function PublicEventDetailPage({
 
   if (!event) notFound();
 
+  const user = await getUser();
+  const profileId = user?.id ?? null;
+
+  // public_address is gated behind getRevealedAddress (service role).
+  const adminSupabase = await createServiceClient();
+  const { data: privateRow } = await adminSupabase
+    .from("events")
+    .select("id, address_reveal_at, public_address")
+    .eq("id", event.id)
+    .maybeSingle();
+
+  const reveal = privateRow
+    ? await getRevealedAddress(privateRow, profileId)
+    : null;
+
+  // Capacity remaining (only counts paid seats; pending allocation may still
+  // race against this number but Stripe-side will resolve it).
+  let remaining: number | null = null;
+  if (event.ticket_capacity != null) {
+    const { data: paidCount } = await supabase.rpc("event_paid_ticket_count", {
+      p_event_id: event.id,
+    });
+    remaining = event.ticket_capacity - (paidCount ?? 0);
+    if (remaining < 0) remaining = 0;
+  }
+
   const { data: videoRows } = await supabase
     .from("videos")
     .select("id, title, caption, youtube_url")
@@ -78,13 +107,14 @@ export default async function PublicEventDetailPage({
 
   const price = formatPrice(event.ticket_price_cents);
   const revealAt = formatReveal(event.address_reveal_at);
+  const ticketingLive =
+    event.ticketing_enabled &&
+    event.ticket_price_cents != null &&
+    event.ticket_price_cents > 0;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link
-        href="/events"
-        className="text-sm text-gray-500 hover:text-gray-700"
-      >
+      <Link href="/events" className="text-sm text-gray-500 hover:text-gray-700">
         ← All events
       </Link>
 
@@ -110,14 +140,20 @@ export default async function PublicEventDetailPage({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
           Location
         </h2>
-        <p className="mt-2 text-gray-700">
-          {revealAt
-            ? `Address revealed ${revealAt}`
-            : "Address revealed close to the event."}
-        </p>
+        {reveal && reveal.revealed ? (
+          <p className="mt-2 whitespace-pre-line text-gray-900">
+            {reveal.address}
+          </p>
+        ) : (
+          <p className="mt-2 text-gray-700">
+            {revealAt
+              ? `Address revealed ${revealAt}${reveal && reveal.reason === "no_ticket" ? " to ticket holders" : ""}`
+              : "Address revealed close to the event."}
+          </p>
+        )}
       </div>
 
-      {event.ticketing_enabled ? (
+      {ticketingLive && (
         <div className="mt-6 rounded-lg border border-gray-200 bg-white p-5">
           <div className="flex items-baseline justify-between">
             <h2 className="text-lg font-semibold">Tickets</h2>
@@ -125,18 +161,27 @@ export default async function PublicEventDetailPage({
           </div>
           {event.ticket_capacity != null && (
             <p className="mt-1 text-sm text-gray-500">
-              Limited to {event.ticket_capacity} attendees.
+              {remaining != null && remaining > 0
+                ? `${remaining} of ${event.ticket_capacity} seats left`
+                : `Limited to ${event.ticket_capacity} attendees`}
             </p>
           )}
-          <button
-            type="button"
-            disabled
-            className="mt-4 w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white opacity-60"
-          >
-            Ticketing coming soon
-          </button>
+          {user ? (
+            <BuyTicketForm
+              eventId={event.id}
+              pricePerTicketCents={event.ticket_price_cents ?? 0}
+              remaining={remaining}
+            />
+          ) : (
+            <Link
+              href={`/auth/login?next=${encodeURIComponent(`/events/${slug}`)}`}
+              className="mt-4 inline-block w-full rounded-md bg-blue-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Sign in to buy tickets
+            </Link>
+          )}
         </div>
-      ) : null}
+      )}
 
       {linkedVideos.length > 0 && (
         <div className="mt-8">

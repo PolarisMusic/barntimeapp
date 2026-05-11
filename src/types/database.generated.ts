@@ -713,6 +713,7 @@ export type Database = {
           id: string
           platform_role: Database["public"]["Enums"]["platform_role"]
           updated_at: string
+          wallet_address: string | null
         }
         Insert: {
           created_at?: string
@@ -721,6 +722,7 @@ export type Database = {
           id: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
           updated_at?: string
+          wallet_address?: string | null
         }
         Update: {
           created_at?: string
@@ -729,12 +731,111 @@ export type Database = {
           id?: string
           platform_role?: Database["public"]["Enums"]["platform_role"]
           updated_at?: string
+          wallet_address?: string | null
         }
         Relationships: []
       }
+      tickets: {
+        Row: {
+          chain_id: number | null
+          contract_address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json: Json | null
+          mint_tx_hash: string | null
+          minted_at: string | null
+          paid_at: string | null
+          profile_id: string
+          quantity: number
+          serial_number: number
+          status: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          token_id: number | null
+          unit_price_cents: number
+          updated_at: string
+        }
+        Insert: {
+          chain_id?: number | null
+          contract_address?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          issuance_hash?: string | null
+          kind?: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json?: Json | null
+          mint_tx_hash?: string | null
+          minted_at?: string | null
+          paid_at?: string | null
+          profile_id: string
+          quantity?: number
+          serial_number: number
+          status?: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          token_id?: number | null
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          chain_id?: number | null
+          contract_address?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          issuance_hash?: string | null
+          kind?: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json?: Json | null
+          mint_tx_hash?: string | null
+          minted_at?: string | null
+          paid_at?: string | null
+          profile_id?: string
+          quantity?: number
+          serial_number?: number
+          status?: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          token_id?: number | null
+          unit_price_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      public_ticket_certificates: {
+        Row: {
+          chain_id: number | null
+          contract_address: string | null
+          event_name: string | null
+          event_slug: string | null
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"] | null
+          minted_at: string | null
+          serial_number: number | null
+          ticket_id: string | null
+          token_id: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_confirm_vendor: { Args: { p_event_id: string }; Returns: boolean }
@@ -751,6 +852,68 @@ export type Database = {
       can_manage_schedule: { Args: { p_event_id: string }; Returns: boolean }
       can_manage_services: { Args: { p_event_id: string }; Returns: boolean }
       can_view_event: { Args: { p_event_id: string }; Returns: boolean }
+      cleanup_expired_pending_tickets: {
+        Args: { p_event_id: string; p_ttl_minutes?: number }
+        Returns: number
+      }
+      event_paid_ticket_count: {
+        Args: { p_event_id: string }
+        Returns: number
+      }
+      finalize_ticket: {
+        Args: { p_ticket_id: string; p_payment_intent: string }
+        Returns: {
+          chain_id: number | null
+          contract_address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json: Json | null
+          mint_tx_hash: string | null
+          minted_at: string | null
+          paid_at: string | null
+          profile_id: string
+          quantity: number
+          serial_number: number
+          status: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          token_id: number | null
+          unit_price_cents: number
+          updated_at: string
+        }
+      }
+      issue_ticket: {
+        Args: {
+          p_event_id: string
+          p_profile_id: string
+          p_kind?: Database["public"]["Enums"]["ticket_kind"]
+        }
+        Returns: {
+          chain_id: number | null
+          contract_address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json: Json | null
+          mint_tx_hash: string | null
+          minted_at: string | null
+          paid_at: string | null
+          profile_id: string
+          quantity: number
+          serial_number: number
+          status: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          token_id: number | null
+          unit_price_cents: number
+          updated_at: string
+        }
+      }
       event_summary: {
         Args: { p_event_id: string }
         Returns: {
@@ -851,6 +1014,8 @@ export type Database = {
       participant_visibility: "limited" | "standard"
       platform_role: "platform_admin" | "staff" | "standard"
       service_status: "pending" | "confirmed" | "cancelled"
+      ticket_kind: "attendee" | "performer" | "staff" | "crew"
+      ticket_status: "pending" | "paid" | "refunded" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
