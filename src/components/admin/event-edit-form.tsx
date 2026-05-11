@@ -13,7 +13,24 @@ type Event = {
   description: string | null;
   notes: string | null;
   timezone: string | null;
+  is_public: boolean | null;
+  public_slug: string | null;
+  public_summary: string | null;
+  hero_image_url: string | null;
+  ticketing_enabled: boolean | null;
+  ticket_price_cents: number | null;
+  ticket_capacity: number | null;
+  address_reveal_at: string | null;
+  public_address: string | null;
 };
+
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 export function EventEditForm({ event }: { event: Event }) {
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +46,11 @@ export function EventEditForm({ event }: { event: Event }) {
       setSuccess(true);
     }
   }
+
+  const priceDollars =
+    event.ticket_price_cents != null
+      ? (event.ticket_price_cents / 100).toFixed(2)
+      : "";
 
   return (
     <form action={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
@@ -75,6 +97,150 @@ export function EventEditForm({ event }: { event: Event }) {
         <label htmlFor="notes" className="mb-1 block text-sm font-medium">Internal Notes</label>
         <textarea id="notes" name="notes" defaultValue={event.notes || ""} rows={2} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
       </div>
+
+      <fieldset className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+        <legend className="px-1 text-sm font-semibold text-gray-700">
+          Public listing &amp; ticketing
+        </legend>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="is_public"
+            name="is_public"
+            type="checkbox"
+            defaultChecked={!!event.is_public}
+          />
+          <label htmlFor="is_public" className="text-sm">
+            List this event publicly
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="public_slug" className="mb-1 block text-sm font-medium">
+              URL slug
+            </label>
+            <input
+              id="public_slug"
+              name="public_slug"
+              type="text"
+              defaultValue={event.public_slug || ""}
+              placeholder="summer-barn-show"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label htmlFor="hero_image_url" className="mb-1 block text-sm font-medium">
+              Hero image URL
+            </label>
+            <input
+              id="hero_image_url"
+              name="hero_image_url"
+              type="url"
+              defaultValue={event.hero_image_url || ""}
+              placeholder="https://..."
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="public_summary" className="mb-1 block text-sm font-medium">
+            Public summary
+          </label>
+          <textarea
+            id="public_summary"
+            name="public_summary"
+            rows={3}
+            defaultValue={event.public_summary || ""}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            id="ticketing_enabled"
+            name="ticketing_enabled"
+            type="checkbox"
+            defaultChecked={!!event.ticketing_enabled}
+          />
+          <label htmlFor="ticketing_enabled" className="text-sm">
+            Sell tickets
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label
+              htmlFor="ticket_price_dollars"
+              className="mb-1 block text-sm font-medium"
+            >
+              Ticket price (USD)
+            </label>
+            <input
+              id="ticket_price_dollars"
+              name="ticket_price_dollars"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={priceDollars}
+              placeholder="15.00"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="ticket_capacity"
+              className="mb-1 block text-sm font-medium"
+            >
+              Capacity
+            </label>
+            <input
+              id="ticket_capacity"
+              name="ticket_capacity"
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={event.ticket_capacity ?? ""}
+              placeholder="50"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="address_reveal_at"
+            className="mb-1 block text-sm font-medium"
+          >
+            Address reveal time
+          </label>
+          <input
+            id="address_reveal_at"
+            name="address_reveal_at"
+            type="datetime-local"
+            defaultValue={toDatetimeLocal(event.address_reveal_at)}
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Ticket holders see the address after this time.
+          </p>
+        </div>
+
+        <div>
+          <label htmlFor="public_address" className="mb-1 block text-sm font-medium">
+            Public address (revealed)
+          </label>
+          <input
+            id="public_address"
+            name="public_address"
+            type="text"
+            defaultValue={event.public_address || ""}
+            placeholder="123 Barn Rd, Petaluma, CA"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+      </fieldset>
 
       {error && <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {success && <div className="rounded-md bg-green-50 p-3 text-sm text-green-700">Event updated.</div>}

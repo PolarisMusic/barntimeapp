@@ -29,6 +29,12 @@ export default async function AdminLayout({
             >
               Events
             </Link>
+            <Link
+              href="/admin/videos"
+              className="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Videos
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <Link

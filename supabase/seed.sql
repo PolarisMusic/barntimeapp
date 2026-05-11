@@ -161,6 +161,75 @@ INSERT INTO events (id, owner_account_id, name, status, start_date, end_date, de
 ON CONFLICT (id) DO NOTHING;
 
 -- -------------------------------------------------------------------------
+-- PUBLIC EVENTS (Sofar-style ticketed shows)
+-- -------------------------------------------------------------------------
+-- One event with address already revealed, one with reveal still in the
+-- future, plus the $15 / capacity 20 event called out in the rollout plan.
+INSERT INTO events (
+  id, owner_account_id, name, status, start_date, end_date,
+  description, timezone,
+  is_public, public_slug, public_summary, hero_image_url,
+  ticketing_enabled, ticket_price_cents, ticket_capacity,
+  address_reveal_at, public_address
+) VALUES
+  ('eeeeeeee-0000-0000-0000-000000000010',
+   'cccccccc-0000-0000-0000-000000000001',
+   'Barn Sessions: Summer Acoustic',
+   'active',
+   (now() + interval '30 days')::date,
+   (now() + interval '30 days')::date,
+   'Intimate acoustic show in a working barn. BYOB.',
+   'America/Los_Angeles',
+   true, 'summer-acoustic',
+   'An intimate evening of acoustic sets from three Bay Area artists, hosted in a working barn just outside Petaluma. Doors at 6, music at 7. BYOB.',
+   'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=1200',
+   true, 1500, 20,
+   now() + interval '29 days',
+   '742 Old Adobe Rd, Petaluma, CA 94954'),
+  ('eeeeeeee-0000-0000-0000-000000000011',
+   'cccccccc-0000-0000-0000-000000000001',
+   'Loft Show: Indie Folk Night',
+   'active',
+   (now() + interval '7 days')::date,
+   (now() + interval '7 days')::date,
+   'Three folk acts in a converted loft.',
+   'America/Los_Angeles',
+   true, 'loft-folk-night',
+   'Three folk acts curated by Barn Time, hosted in a converted loft in the Mission. Limited seating.',
+   'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=1200',
+   true, 2500, 35,
+   now() - interval '1 day',
+   '2451 24th Street, San Francisco, CA 94110')
+ON CONFLICT (id) DO NOTHING;
+
+-- -------------------------------------------------------------------------
+-- VIDEOS
+-- -------------------------------------------------------------------------
+INSERT INTO videos (id, title, caption, youtube_url, event_id, display_order, is_published, published_at, created_by) VALUES
+  ('77777777-0000-0000-0000-000000000001',
+   'Sunrise at the barn',
+   'Early morning load-in for the summer session.',
+   'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+   'eeeeeeee-0000-0000-0000-000000000010',
+   1, true, now() - interval '3 days',
+   'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('77777777-0000-0000-0000-000000000002',
+   'Loft soundcheck',
+   'Soundcheck cut from last month''s loft show.',
+   'https://www.youtube.com/watch?v=9bZkp7q19f0',
+   'eeeeeeee-0000-0000-0000-000000000011',
+   2, true, now() - interval '2 days',
+   'aaaaaaaa-0000-0000-0000-000000000001'),
+  ('77777777-0000-0000-0000-000000000003',
+   'Behind the scenes',
+   'Producer notes from the spring tour.',
+   'https://www.youtube.com/watch?v=L_jWHffIx5E',
+   NULL,
+   3, true, now() - interval '1 day',
+   'aaaaaaaa-0000-0000-0000-000000000001')
+ON CONFLICT (id) DO NOTHING;
+
+-- -------------------------------------------------------------------------
 -- PARTICIPANTS (vendor = standard, venue = limited)
 -- -------------------------------------------------------------------------
 INSERT INTO event_accounts (event_id, account_id, role_label, visibility) VALUES

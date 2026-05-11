@@ -75,6 +75,42 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const notes = formData.get("notes") as string;
   const timezone = formData.get("timezone") as string;
 
+  // Public listing & ticketing
+  const isPublic = formData.get("is_public") === "on";
+  const publicSlugRaw = (formData.get("public_slug") as string | null)?.trim() || null;
+  const publicSummary = (formData.get("public_summary") as string | null)?.trim() || null;
+  const heroImageUrl = (formData.get("hero_image_url") as string | null)?.trim() || null;
+  const ticketingEnabled = formData.get("ticketing_enabled") === "on";
+  const ticketPriceRaw = formData.get("ticket_price_dollars") as string | null;
+  const ticketCapacityRaw = formData.get("ticket_capacity") as string | null;
+  const addressRevealAt = (formData.get("address_reveal_at") as string | null) || null;
+  const publicAddress = (formData.get("public_address") as string | null)?.trim() || null;
+
+  if (isPublic && !publicSlugRaw) {
+    return { error: "Public events require a URL slug" };
+  }
+  if (publicSlugRaw && !/^[a-z0-9-]+$/.test(publicSlugRaw)) {
+    return { error: "Slug may contain only lowercase letters, numbers, and hyphens" };
+  }
+
+  let ticketPriceCents: number | null = null;
+  if (ticketPriceRaw && ticketPriceRaw.trim()) {
+    const dollars = Number(ticketPriceRaw);
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      return { error: "Ticket price must be a non-negative number" };
+    }
+    ticketPriceCents = Math.round(dollars * 100);
+  }
+
+  let ticketCapacity: number | null = null;
+  if (ticketCapacityRaw && ticketCapacityRaw.trim()) {
+    const cap = parseInt(ticketCapacityRaw, 10);
+    if (!Number.isFinite(cap) || cap < 0) {
+      return { error: "Ticket capacity must be a non-negative integer" };
+    }
+    ticketCapacity = cap;
+  }
+
   const { data: event, error } = await supabase
     .from("events")
     .update({
@@ -85,6 +121,15 @@ export async function updateEvent(eventId: string, formData: FormData) {
       description: description || null,
       notes: notes || null,
       timezone: timezone || undefined,
+      is_public: isPublic,
+      public_slug: publicSlugRaw,
+      public_summary: publicSummary,
+      hero_image_url: heroImageUrl,
+      ticketing_enabled: ticketingEnabled,
+      ticket_price_cents: ticketPriceCents,
+      ticket_capacity: ticketCapacity,
+      address_reveal_at: addressRevealAt || null,
+      public_address: publicAddress,
     })
     .eq("id", eventId)
     .select()
@@ -104,6 +149,10 @@ export async function updateEvent(eventId: string, formData: FormData) {
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${eventId}`);
   revalidatePath(`/portal/events/${eventId}`);
+  revalidatePath("/events");
+  if (event.public_slug) {
+    revalidatePath(`/events/${event.public_slug}`);
+  }
   return { data: event };
 }
 

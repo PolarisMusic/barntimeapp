@@ -573,41 +573,68 @@ export type Database = {
       }
       events: {
         Row: {
+          address_reveal_at: string | null
           created_at: string
           description: string | null
           end_date: string | null
+          hero_image_url: string | null
           id: string
+          is_public: boolean
           name: string
           notes: string | null
           owner_account_id: string
+          public_address: string | null
+          public_slug: string | null
+          public_summary: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["event_status"]
+          ticket_capacity: number | null
+          ticket_price_cents: number | null
+          ticketing_enabled: boolean
           timezone: string | null
           updated_at: string
         }
         Insert: {
+          address_reveal_at?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
+          hero_image_url?: string | null
           id?: string
+          is_public?: boolean
           name: string
           notes?: string | null
           owner_account_id: string
+          public_address?: string | null
+          public_slug?: string | null
+          public_summary?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          ticket_capacity?: number | null
+          ticket_price_cents?: number | null
+          ticketing_enabled?: boolean
           timezone?: string | null
           updated_at?: string
         }
         Update: {
+          address_reveal_at?: string | null
           created_at?: string
           description?: string | null
           end_date?: string | null
+          hero_image_url?: string | null
           id?: string
+          is_public?: boolean
           name?: string
           notes?: string | null
           owner_account_id?: string
+          public_address?: string | null
+          public_slug?: string | null
+          public_summary?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["event_status"]
+          ticket_capacity?: number | null
+          ticket_price_cents?: number | null
+          ticketing_enabled?: boolean
           timezone?: string | null
           updated_at?: string
         }
@@ -617,6 +644,63 @@ export type Database = {
             columns: ["owner_account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          display_order: number
+          event_id: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          event_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          event_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
