@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { updateEvent } from "@/lib/actions/events";
 import { FormButton } from "@/components/ui/form-button";
+import { HeroImageUploader } from "@/components/admin/hero-image-uploader";
 
 type Event = {
   id: string;
@@ -115,33 +116,40 @@ export function EventEditForm({ event }: { event: Event }) {
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="public_slug" className="mb-1 block text-sm font-medium">
-              URL slug
-            </label>
-            <input
-              id="public_slug"
-              name="public_slug"
-              type="text"
-              defaultValue={event.public_slug || ""}
-              placeholder="summer-barn-show"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label htmlFor="hero_image_url" className="mb-1 block text-sm font-medium">
-              Hero image URL
-            </label>
-            <input
-              id="hero_image_url"
-              name="hero_image_url"
-              type="url"
-              defaultValue={event.hero_image_url || ""}
-              placeholder="https://..."
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-            />
-          </div>
+        <div>
+          <label htmlFor="public_slug" className="mb-1 block text-sm font-medium">
+            URL slug
+          </label>
+          <input
+            id="public_slug"
+            name="public_slug"
+            type="text"
+            defaultValue={event.public_slug || ""}
+            placeholder="summer-barn-show"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+        </div>
+
+        <HeroImageUploader
+          eventId={event.id}
+          currentUrl={event.hero_image_url}
+        />
+
+        <div>
+          <label htmlFor="hero_image_url" className="mb-1 block text-sm font-medium">
+            Hero image URL (or paste an external link)
+          </label>
+          <input
+            id="hero_image_url"
+            name="hero_image_url"
+            type="url"
+            defaultValue={event.hero_image_url || ""}
+            placeholder="https://..."
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Uploads above set this automatically.
+          </p>
         </div>
 
         <div>

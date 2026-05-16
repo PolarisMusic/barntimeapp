@@ -1,8 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
-import { getStripe } from "@/lib/stripe";
+import { appUrl, getStripe } from "@/lib/stripe";
 import { createServiceClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/actions/activity-log";
+import {
+  sendTransactionalEmail,
+  ticketConfirmationEmail,
+} from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -84,5 +88,64 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Best-effort confirmation email. Failures here must not fail the webhook
+  // (Stripe would retry the whole thing).
+  try {
+    if (finalized > 0) {
+      await sendConfirmation({
+        session,
+        ticketIds,
+        eventId: eventId ?? null,
+      });
+    }
+  } catch (err) {
+    console.error("ticket confirmation email failed", err);
+  }
+
   return NextResponse.json({ received: true, finalized });
+}
+
+async function sendConfirmation({
+  session,
+  ticketIds,
+  eventId,
+}: {
+  session: Stripe.Checkout.Session;
+  ticketIds: string[];
+  eventId: string | null;
+}) {
+  const to = session.customer_details?.email || session.customer_email;
+  if (!to || !eventId) return;
+
+  const supabase = await createServiceClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("name, public_slug, start_date, ticket_capacity")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!event || !event.public_slug) return;
+
+  const { data: rows } = await supabase
+    .from("tickets")
+    .select("serial_number")
+    .in("id", ticketIds)
+    .eq("status", "paid")
+    .order("serial_number");
+
+  const cap = event.ticket_capacity;
+  const seatLines = (rows || []).map((r) =>
+    cap ? `Seat #${r.serial_number} of ${cap}` : `Seat #${r.serial_number}`
+  );
+  if (seatLines.length === 0) return;
+
+  const email = ticketConfirmationEmail({
+    eventName: event.name,
+    eventStart: event.start_date,
+    seatLines,
+    eventUrl: `${appUrl()}/events/${event.public_slug}`,
+    myTicketsUrl: `${appUrl()}/my`,
+  });
+
+  await sendTransactionalEmail({ to, ...email });
 }

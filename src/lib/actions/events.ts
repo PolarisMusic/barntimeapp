@@ -156,6 +156,94 @@ export async function updateEvent(eventId: string, formData: FormData) {
   return { data: event };
 }
 
+const HERO_BUCKET = "event-hero-images";
+const HERO_MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const HERO_ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+
+export async function uploadEventHero(formData: FormData) {
+  const profile = await requireAdmin();
+  const eventId = formData.get("event_id") as string;
+  const file = formData.get("file") as File | null;
+
+  if (!eventId) return { error: "Event id is required" };
+  if (!file || !file.size) return { error: "File is required" };
+  if (file.size > HERO_MAX_BYTES) {
+    return { error: "Image is too large (max 8 MB)" };
+  }
+  if (!HERO_ALLOWED_TYPES.has(file.type)) {
+    return { error: "Image must be JPEG, PNG, WebP, or AVIF" };
+  }
+
+  const supabase = await createServiceClient();
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const filePath = `${eventId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(HERO_BUCKET)
+    .upload(filePath, file, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+  if (uploadError) return { error: uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(HERO_BUCKET).getPublicUrl(filePath);
+
+  const { data: previous } = await supabase
+    .from("events")
+    .select("hero_image_url, public_slug")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  const { data: event, error } = await supabase
+    .from("events")
+    .update({ hero_image_url: publicUrl })
+    .eq("id", eventId)
+    .select("id, public_slug, hero_image_url")
+    .single();
+
+  if (error) {
+    await supabase.storage.from(HERO_BUCKET).remove([filePath]);
+    return { error: error.message };
+  }
+
+  // Best-effort cleanup of the previous hero, if it was hosted in this bucket.
+  const previousUrl = previous?.hero_image_url;
+  if (previousUrl) {
+    const marker = `/storage/v1/object/public/${HERO_BUCKET}/`;
+    const idx = previousUrl.indexOf(marker);
+    if (idx !== -1) {
+      const oldPath = previousUrl.slice(idx + marker.length);
+      if (oldPath && oldPath !== filePath) {
+        await supabase.storage.from(HERO_BUCKET).remove([oldPath]);
+      }
+    }
+  }
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: eventId,
+    action: "event.hero_uploaded",
+    summary: "Updated event hero image",
+    details: { subject_type: "event", field_names: ["hero_image_url"] },
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/events");
+  if (event.public_slug) revalidatePath(`/events/${event.public_slug}`);
+
+  return { data: { url: publicUrl } };
+}
+
 // --- Participants ---
 
 export async function linkParticipantAccount(formData: FormData) {

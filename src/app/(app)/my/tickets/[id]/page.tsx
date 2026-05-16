@@ -148,6 +148,14 @@ export default async function TicketDetailPage({
             This hash uniquely identifies your seat. If we ever issue this
             ticket on-chain, the mint will reference exactly this record.
           </p>
+          {event.public_slug && (
+            <Link
+              href={`/events/${event.public_slug}/tickets/${ticket.serial_number}`}
+              className="mt-3 inline-block text-sm text-blue-600 hover:text-blue-800"
+            >
+              View public certificate →
+            </Link>
+          )}
         </div>
       )}
 
