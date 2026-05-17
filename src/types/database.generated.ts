@@ -648,63 +648,6 @@ export type Database = {
           },
         ]
       }
-      videos: {
-        Row: {
-          caption: string | null
-          created_at: string
-          created_by: string | null
-          display_order: number
-          event_id: string | null
-          id: string
-          is_published: boolean
-          published_at: string | null
-          title: string
-          updated_at: string
-          youtube_url: string
-        }
-        Insert: {
-          caption?: string | null
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          event_id?: string | null
-          id?: string
-          is_published?: boolean
-          published_at?: string | null
-          title: string
-          updated_at?: string
-          youtube_url: string
-        }
-        Update: {
-          caption?: string | null
-          created_at?: string
-          created_by?: string | null
-          display_order?: number
-          event_id?: string | null
-          id?: string
-          is_published?: boolean
-          published_at?: string | null
-          title?: string
-          updated_at?: string
-          youtube_url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "videos_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "videos_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           created_at: string
@@ -819,6 +762,63 @@ export type Database = {
           },
         ]
       }
+      videos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          display_order: number
+          event_id: string | null
+          id: string
+          is_published: boolean
+          published_at: string | null
+          title: string
+          updated_at: string
+          youtube_url: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          event_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          title: string
+          updated_at?: string
+          youtube_url: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          event_id?: string | null
+          id?: string
+          is_published?: boolean
+          published_at?: string | null
+          title?: string
+          updated_at?: string
+          youtube_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       public_ticket_certificates: {
@@ -860,60 +860,6 @@ export type Database = {
         Args: { p_event_id: string }
         Returns: number
       }
-      finalize_ticket: {
-        Args: { p_ticket_id: string; p_payment_intent: string }
-        Returns: {
-          chain_id: number | null
-          contract_address: string | null
-          created_at: string
-          event_id: string
-          id: string
-          issuance_hash: string | null
-          kind: Database["public"]["Enums"]["ticket_kind"]
-          metadata_json: Json | null
-          mint_tx_hash: string | null
-          minted_at: string | null
-          paid_at: string | null
-          profile_id: string
-          quantity: number
-          serial_number: number
-          status: Database["public"]["Enums"]["ticket_status"]
-          stripe_checkout_session_id: string | null
-          stripe_payment_intent_id: string | null
-          token_id: number | null
-          unit_price_cents: number
-          updated_at: string
-        }
-      }
-      issue_ticket: {
-        Args: {
-          p_event_id: string
-          p_profile_id: string
-          p_kind?: Database["public"]["Enums"]["ticket_kind"]
-        }
-        Returns: {
-          chain_id: number | null
-          contract_address: string | null
-          created_at: string
-          event_id: string
-          id: string
-          issuance_hash: string | null
-          kind: Database["public"]["Enums"]["ticket_kind"]
-          metadata_json: Json | null
-          mint_tx_hash: string | null
-          minted_at: string | null
-          paid_at: string | null
-          profile_id: string
-          quantity: number
-          serial_number: number
-          status: Database["public"]["Enums"]["ticket_status"]
-          stripe_checkout_session_id: string | null
-          stripe_payment_intent_id: string | null
-          token_id: number | null
-          unit_price_cents: number
-          updated_at: string
-        }
-      }
       event_summary: {
         Args: { p_event_id: string }
         Returns: {
@@ -944,6 +890,31 @@ export type Database = {
           timezone: string
         }[]
       }
+      finalize_ticket: {
+        Args: { p_ticket_id: string; p_payment_intent: string }
+        Returns: {
+          chain_id: number | null
+          contract_address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json: Json | null
+          mint_tx_hash: string | null
+          minted_at: string | null
+          paid_at: string | null
+          profile_id: string
+          quantity: number
+          serial_number: number
+          status: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          token_id: number | null
+          unit_price_cents: number
+          updated_at: string
+        }
+      }
       get_default_permissions: {
         Args: { role: Database["public"]["Enums"]["account_role"] }
         Returns: string[]
@@ -969,6 +940,35 @@ export type Database = {
       is_event_participant: { Args: { p_event_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      issue_ticket: {
+        Args: {
+          p_event_id: string
+          p_profile_id: string
+          p_kind?: Database["public"]["Enums"]["ticket_kind"]
+        }
+        Returns: {
+          chain_id: number | null
+          contract_address: string | null
+          created_at: string
+          event_id: string
+          id: string
+          issuance_hash: string | null
+          kind: Database["public"]["Enums"]["ticket_kind"]
+          metadata_json: Json | null
+          mint_tx_hash: string | null
+          minted_at: string | null
+          paid_at: string | null
+          profile_id: string
+          quantity: number
+          serial_number: number
+          status: Database["public"]["Enums"]["ticket_status"]
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          token_id: number | null
+          unit_price_cents: number
+          updated_at: string
+        }
+      }
       membership_has_permission: {
         Args: { p_membership_id: string; p_permission_key: string }
         Returns: boolean
