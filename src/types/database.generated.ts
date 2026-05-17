@@ -804,17 +804,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "videos_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "videos_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
@@ -856,10 +856,7 @@ export type Database = {
         Args: { p_event_id: string; p_ttl_minutes?: number }
         Returns: number
       }
-      event_paid_ticket_count: {
-        Args: { p_event_id: string }
-        Returns: number
-      }
+      event_paid_ticket_count: { Args: { p_event_id: string }; Returns: number }
       event_summary: {
         Args: { p_event_id: string }
         Returns: {
@@ -891,7 +888,7 @@ export type Database = {
         }[]
       }
       finalize_ticket: {
-        Args: { p_ticket_id: string; p_payment_intent: string }
+        Args: { p_payment_intent: string; p_ticket_id: string }
         Returns: {
           chain_id: number | null
           contract_address: string | null
@@ -913,6 +910,12 @@ export type Database = {
           token_id: number | null
           unit_price_cents: number
           updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       get_default_permissions: {
@@ -943,8 +946,8 @@ export type Database = {
       issue_ticket: {
         Args: {
           p_event_id: string
-          p_profile_id: string
           p_kind?: Database["public"]["Enums"]["ticket_kind"]
+          p_profile_id: string
         }
         Returns: {
           chain_id: number | null
@@ -967,6 +970,12 @@ export type Database = {
           token_id: number | null
           unit_price_cents: number
           updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "tickets"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       membership_has_permission: {
@@ -1169,6 +1178,8 @@ export const Constants = {
       participant_visibility: ["limited", "standard"],
       platform_role: ["platform_admin", "staff", "standard"],
       service_status: ["pending", "confirmed", "cancelled"],
+      ticket_kind: ["attendee", "performer", "staff", "crew"],
+      ticket_status: ["pending", "paid", "refunded", "cancelled"],
     },
   },
 } as const
