@@ -75,6 +75,42 @@ export async function updateEvent(eventId: string, formData: FormData) {
   const notes = formData.get("notes") as string;
   const timezone = formData.get("timezone") as string;
 
+  // Public listing & ticketing
+  const isPublic = formData.get("is_public") === "on";
+  const publicSlugRaw = (formData.get("public_slug") as string | null)?.trim() || null;
+  const publicSummary = (formData.get("public_summary") as string | null)?.trim() || null;
+  const heroImageUrl = (formData.get("hero_image_url") as string | null)?.trim() || null;
+  const ticketingEnabled = formData.get("ticketing_enabled") === "on";
+  const ticketPriceRaw = formData.get("ticket_price_dollars") as string | null;
+  const ticketCapacityRaw = formData.get("ticket_capacity") as string | null;
+  const addressRevealAt = (formData.get("address_reveal_at") as string | null) || null;
+  const publicAddress = (formData.get("public_address") as string | null)?.trim() || null;
+
+  if (isPublic && !publicSlugRaw) {
+    return { error: "Public events require a URL slug" };
+  }
+  if (publicSlugRaw && !/^[a-z0-9-]+$/.test(publicSlugRaw)) {
+    return { error: "Slug may contain only lowercase letters, numbers, and hyphens" };
+  }
+
+  let ticketPriceCents: number | null = null;
+  if (ticketPriceRaw && ticketPriceRaw.trim()) {
+    const dollars = Number(ticketPriceRaw);
+    if (!Number.isFinite(dollars) || dollars < 0) {
+      return { error: "Ticket price must be a non-negative number" };
+    }
+    ticketPriceCents = Math.round(dollars * 100);
+  }
+
+  let ticketCapacity: number | null = null;
+  if (ticketCapacityRaw && ticketCapacityRaw.trim()) {
+    const cap = parseInt(ticketCapacityRaw, 10);
+    if (!Number.isFinite(cap) || cap < 0) {
+      return { error: "Ticket capacity must be a non-negative integer" };
+    }
+    ticketCapacity = cap;
+  }
+
   const { data: event, error } = await supabase
     .from("events")
     .update({
@@ -85,6 +121,15 @@ export async function updateEvent(eventId: string, formData: FormData) {
       description: description || null,
       notes: notes || null,
       timezone: timezone || undefined,
+      is_public: isPublic,
+      public_slug: publicSlugRaw,
+      public_summary: publicSummary,
+      hero_image_url: heroImageUrl,
+      ticketing_enabled: ticketingEnabled,
+      ticket_price_cents: ticketPriceCents,
+      ticket_capacity: ticketCapacity,
+      address_reveal_at: addressRevealAt || null,
+      public_address: publicAddress,
     })
     .eq("id", eventId)
     .select()
@@ -104,7 +149,99 @@ export async function updateEvent(eventId: string, formData: FormData) {
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${eventId}`);
   revalidatePath(`/portal/events/${eventId}`);
+  revalidatePath("/events");
+  if (event.public_slug) {
+    revalidatePath(`/events/${event.public_slug}`);
+  }
   return { data: event };
+}
+
+const HERO_BUCKET = "event-hero-images";
+const HERO_MAX_BYTES = 8 * 1024 * 1024; // 8 MB
+const HERO_ALLOWED_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+
+export async function uploadEventHero(formData: FormData) {
+  const profile = await requireAdmin();
+  const eventId = formData.get("event_id") as string;
+  const file = formData.get("file") as File | null;
+
+  if (!eventId) return { error: "Event id is required" };
+  if (!file || !file.size) return { error: "File is required" };
+  if (file.size > HERO_MAX_BYTES) {
+    return { error: "Image is too large (max 8 MB)" };
+  }
+  if (!HERO_ALLOWED_TYPES.has(file.type)) {
+    return { error: "Image must be JPEG, PNG, WebP, or AVIF" };
+  }
+
+  const supabase = await createServiceClient();
+
+  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const filePath = `${eventId}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(HERO_BUCKET)
+    .upload(filePath, file, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+  if (uploadError) return { error: uploadError.message };
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(HERO_BUCKET).getPublicUrl(filePath);
+
+  const { data: previous } = await supabase
+    .from("events")
+    .select("hero_image_url, public_slug")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  const { data: event, error } = await supabase
+    .from("events")
+    .update({ hero_image_url: publicUrl })
+    .eq("id", eventId)
+    .select("id, public_slug, hero_image_url")
+    .single();
+
+  if (error) {
+    await supabase.storage.from(HERO_BUCKET).remove([filePath]);
+    return { error: error.message };
+  }
+
+  // Best-effort cleanup of the previous hero, if it was hosted in this bucket.
+  const previousUrl = previous?.hero_image_url;
+  if (previousUrl) {
+    const marker = `/storage/v1/object/public/${HERO_BUCKET}/`;
+    const idx = previousUrl.indexOf(marker);
+    if (idx !== -1) {
+      const oldPath = previousUrl.slice(idx + marker.length);
+      if (oldPath && oldPath !== filePath) {
+        await supabase.storage.from(HERO_BUCKET).remove([oldPath]);
+      }
+    }
+  }
+
+  await logActivity({
+    actorId: profile.id,
+    entityType: "event",
+    entityId: eventId,
+    action: "event.hero_uploaded",
+    summary: "Updated event hero image",
+    details: { subject_type: "event", field_names: ["hero_image_url"] },
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/events");
+  if (event.public_slug) revalidatePath(`/events/${event.public_slug}`);
+
+  return { data: { url: publicUrl } };
 }
 
 // --- Participants ---
